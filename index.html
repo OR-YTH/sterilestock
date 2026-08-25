@@ -991,15 +991,73 @@ function renderDashboard(){
 }
 
 /* ---------- RENDER: INVENTORY ---------- */
+function itemMatchesFilter(i, q){
+  if(q && !(i.name.toLowerCase().includes(q) || (i.lot||'').toLowerCase().includes(q) || i.code.toLowerCase().includes(q))) return false;
+  if(invFilter==='all') return true;
+  if(invFilter==='fail') return !standardPass(i);
+  return statusOf(i)===invFilter;
+}
+function groupCard(name, groupItems){
+  // worst status among the group drives the strip color; sum qty for total on-hand
+  const totalQty = groupItems.reduce((s,i)=>s+(i.qty||0),0);
+  const order = {expired:0, soon:1, ok:2};
+  const worst = groupItems.map(i=>statusOf(i)).sort((a,b)=>order[a]-order[b])[0] || 'ok';
+  const soonest = groupItems.slice().sort((a,b)=>daysUntil(a.expiry)-daysUntil(b.expiry))[0];
+  const anyFail = groupItems.some(i=>!standardPass(i));
+  const lotCount = groupItems.length;
+  return `
+  <div class="tray-card" data-group="${escapeHtml(name)}">
+    <div class="indicator-strip status-${worst}"></div>
+    <div class="tray-body">
+      <div class="tray-top">
+        <div>
+          <div class="tray-name">${escapeHtml(name)}</div>
+          <div class="tray-code">${lotCount} ล็อตในคลัง</div>
+        </div>
+        <span class="status-pill status-${worst}">${STATUS_LABEL[worst]}</span>
+      </div>
+      <div class="tray-meta">
+        <span>ใกล้หมดอายุสุด: <b>${fmtDate(soonest?soonest.expiry:'')}</b></span>
+      </div>
+      <div class="tray-meta">
+        <span>${anyFail?'<span style="color:var(--expired);font-weight:600;">มีล็อตไม่ผ่านเกณฑ์</span>':'<span style="color:var(--scrub-green-mid);font-weight:600;">ทุกล็อตผ่านเกณฑ์</span>'}</span>
+        <span class="qty-tag" style="font-size:14px;">คงเหลือรวม ${totalQty} ชิ้น</span>
+      </div>
+      <div class="tray-actions">
+        <button class="btn btn-sm btn-outline-blue" data-group-open="${escapeHtml(name)}" style="width:100%;justify-content:center;">ดูรายล็อต (${lotCount})</button>
+      </div>
+    </div>
+  </div>`;
+}
 function renderInventory(){
   const q = document.getElementById('global-search').value.trim().toLowerCase();
-  let list = items.filter(i=>{
-    if(q && !(i.name.toLowerCase().includes(q) || (i.lot||'').toLowerCase().includes(q) || i.code.toLowerCase().includes(q))) return false;
-    if(invFilter==='all') return true;
-    if(invFilter==='fail') return !standardPass(i);
-    return statusOf(i)===invFilter;
-  }).sort((a,b)=>daysUntil(a.expiry)-daysUntil(b.expiry));
-  document.getElementById('inventory-list').innerHTML = list.length ? list.map(i=>trayCard(i)).join('') : emptyState('ไม่พบรายการ','ลองเปลี่ยนตัวกรองหรือคำค้นหา');
+  const matched = items.filter(i=>itemMatchesFilter(i, q));
+  // group by name
+  const groups = {};
+  matched.forEach(i=>{ (groups[i.name] = groups[i.name] || []).push(i); });
+  const names = Object.keys(groups).sort((a,b)=>a.localeCompare(b,'th'));
+  document.getElementById('inventory-list').innerHTML = names.length
+    ? names.map(n=>groupCard(n, groups[n])).join('')
+    : emptyState('ไม่พบรายการ','ลองเปลี่ยนตัวกรองหรือคำค้นหา');
+}
+function openGroupModal(name){
+  const q = document.getElementById('global-search').value.trim().toLowerCase();
+  const groupItems = items.filter(i=>i.name===name && itemMatchesFilter(i,q))
+    .sort((a,b)=>daysUntil(a.expiry)-daysUntil(b.expiry)); // FEFO inside group
+  const total = groupItems.reduce((s,i)=>s+(i.qty||0),0);
+  const html = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <h2 style="margin:0;">${escapeHtml(name)}</h2>
+      <span class="qty-tag" style="font-size:14px;">คงเหลือรวม ${total} ชิ้น</span>
+    </div>
+    <p style="font-size:12px;color:var(--steel);margin:6px 0 14px;">เรียงตามวันหมดอายุ (ใกล้หมดขึ้นก่อน) — กดที่ล็อตเพื่อดู/แก้ไข/บันทึกใช้</p>
+    <div id="group-lot-list">${groupItems.map(i=>trayCard(i)).join('')}</div>
+    <div class="modal-actions"><button class="btn" id="btn-close-group">ปิด</button></div>`;
+  const mc = document.getElementById('detail-modal-content');
+  mc.style.maxWidth = '640px';
+  mc.innerHTML = html;
+  document.getElementById('detail-overlay').classList.add('active');
+  document.getElementById('btn-close-group').onclick = ()=>document.getElementById('detail-overlay').classList.remove('active');
 }
 document.getElementById('inv-filters').addEventListener('click', e=>{
   const chip = e.target.closest('.chip'); if(!chip) return;
@@ -1019,7 +1077,13 @@ document.getElementById('view-dashboard').addEventListener('click', e=>{
 
 /* ---------- CARD ACTIONS ---------- */
 document.getElementById('app').addEventListener('click', e=>{
-  const card = e.target.closest('.tray-card'); if(!card) return;
+  // group card (inventory grouped by name) -> open lot list
+  const groupBtn = e.target.closest('[data-group-open]');
+  if(groupBtn){ openGroupModal(groupBtn.dataset.groupOpen); return; }
+  const groupCardEl = e.target.closest('[data-group]');
+  if(groupCardEl && !e.target.closest('.tray-card[data-id]')){ openGroupModal(groupCardEl.dataset.group); return; }
+
+  const card = e.target.closest('.tray-card[data-id]'); if(!card) return;
   const id = card.dataset.id;
   const item = items.find(i=>i.id===id); if(!item) return;
   const act = e.target.closest('[data-act]');
@@ -1191,7 +1255,9 @@ function openDetailModal(item){
       <button class="btn btn-primary" id="btn-use-from-detail" ${item.qty<=0?'disabled':''}>บันทึกว่าใช้แล้ว 1 ชุด</button>
     </div>
   `;
-  document.getElementById('detail-modal-content').innerHTML = html;
+  const mcd = document.getElementById('detail-modal-content');
+  mcd.style.maxWidth = '';
+  mcd.innerHTML = html;
   document.getElementById('detail-overlay').classList.add('active');
   try{ document.getElementById('detail-hosp-logo').src = HOSPITAL_LOGO; }catch(e){}
   try{
@@ -1849,7 +1915,11 @@ function renderAll(){
 function populateItemNameSuggestions(){
   const dl = document.getElementById('cssd-item-names');
   if(!dl) return;
-  dl.innerHTML = CSSD_ITEM_NAMES.map(n=>`<option value="${escapeHtml(n)}">`).join('');
+  // รวมชื่อจาก master catalog + ชื่อที่เคยรับเข้าจริงในคลัง (ชื่อที่ใช้จริงขึ้นก่อน)
+  const usedNames = [...new Set(items.map(i=>i.name).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'th'));
+  const masterNames = CSSD_ITEM_NAMES.filter(n=>!usedNames.includes(n));
+  const allNames = [...usedNames, ...masterNames];
+  dl.innerHTML = allNames.map(n=>`<option value="${escapeHtml(n)}">`).join('');
 }
 
 /* ---------- THAI DATE PICKER ---------- */
