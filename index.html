@@ -313,6 +313,14 @@ input,select,textarea{font-family:inherit;}
 .tdp-month-cell:hover{background:var(--sterile-white);}
 .tdp-month-cell.tdp-selected{background:var(--scrub-green-mid); color:#fff; font-weight:700;}
 .shelf-btn.active{background:linear-gradient(135deg,var(--scrub-green-mid),var(--scrub-green));border-color:var(--scrub-green);color:#fff;}
+.ac-wrap{position:relative;}
+.ac-list{position:absolute;top:calc(100% + 2px);left:0;right:0;z-index:70;background:#fff;border:1px solid var(--line-strong);border-radius:10px;box-shadow:var(--shadow-pop);max-height:240px;overflow-y:auto;display:none;}
+.ac-list.open{display:block;}
+.ac-item{padding:10px 13px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--line);}
+.ac-item:last-child{border-bottom:none;}
+.ac-item:hover,.ac-item.ac-active{background:var(--scrub-green-pale);}
+.ac-item .ac-tag{font-size:10.5px;color:var(--steel);margin-left:6px;}
+.ac-empty{padding:10px 13px;font-size:12.5px;color:var(--steel);}
 </style>
 </head>
 <body>
@@ -441,7 +449,12 @@ input,select,textarea{font-family:inherit;}
           </div>
           <div class="scan-panel">
             <h3 class="section-title" style="margin-top:0;">ข้อมูลชุดที่รับเข้า</h3>
-            <div class="field"><label>ชื่อชุด/อุปกรณ์</label><input id="r-name" list="cssd-item-names" placeholder="เช่น ชุดผ่าตัดไส้ติ่ง Set A"></div>
+            <div class="field"><label>ชื่อชุด/อุปกรณ์</label>
+              <div class="ac-wrap">
+                <input id="r-name" autocomplete="off" placeholder="พิมพ์ชื่อ เช่น ถ้วย, ผ้า, Set...">
+                <div id="r-name-ac" class="ac-list"></div>
+              </div>
+            </div>
             <div class="field-row">
               <div class="field"><label>เลข Lot (จากสแกน)</label><input id="r-lot" placeholder="สแกนหรือกรอกเอง" class="mono"></div>
               <div class="field"><label>จำนวน</label><input id="r-qty" type="number" min="1" value="1"></div>
@@ -1912,14 +1925,60 @@ function renderAll(){
   if(currentView==='usage') renderUsageHistory();
 }
 
-function populateItemNameSuggestions(){
-  const dl = document.getElementById('cssd-item-names');
-  if(!dl) return;
-  // รวมชื่อจาก master catalog + ชื่อที่เคยรับเข้าจริงในคลัง (ชื่อที่ใช้จริงขึ้นก่อน)
-  const usedNames = [...new Set(items.map(i=>i.name).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'th'));
+function getAllItemNames(){
+  // ชื่อที่เคยรับเข้าจริงในคลัง (ขึ้นก่อน) + ชื่อจาก master catalog
+  const usedNames = [...new Set(items.map(i=>i.name).filter(Boolean))];
   const masterNames = CSSD_ITEM_NAMES.filter(n=>!usedNames.includes(n));
-  const allNames = [...usedNames, ...masterNames];
-  dl.innerHTML = allNames.map(n=>`<option value="${escapeHtml(n)}">`).join('');
+  return { used: usedNames.sort((a,b)=>a.localeCompare(b,'th')), all: [...usedNames.sort((a,b)=>a.localeCompare(b,'th')), ...masterNames] };
+}
+function populateItemNameSuggestions(){
+  // keep the legacy datalist populated too (harmless), but custom AC is the real UI
+  const dl = document.getElementById('cssd-item-names');
+  if(dl){ dl.innerHTML = getAllItemNames().all.map(n=>`<option value="${escapeHtml(n)}">`).join(''); }
+}
+function setupNameAutocomplete(){
+  const input = document.getElementById('r-name');
+  const list = document.getElementById('r-name-ac');
+  if(!input || !list) return;
+  let activeIdx = -1;
+  let current = [];
+  function render(q){
+    const qq = (q||'').trim().toLowerCase();
+    const {used, all} = getAllItemNames();
+    let matches;
+    if(!qq){ matches = used.slice(0,30); } // ยังไม่พิมพ์ -> โชว์ชื่อที่เคยใช้จริง
+    else { matches = all.filter(n=>n.toLowerCase().includes(qq)).slice(0,40); }
+    current = matches;
+    activeIdx = -1;
+    if(!matches.length){ list.innerHTML = '<div class="ac-empty">ไม่พบชื่อที่ตรง — พิมพ์ชื่อใหม่ได้เลย ระบบจะบันทึกให้</div>'; list.classList.add('open'); return; }
+    const usedSet = new Set(used);
+    list.innerHTML = matches.map((n,idx)=>`<div class="ac-item" data-idx="${idx}">${escapeHtml(n)}${usedSet.has(n)?'<span class="ac-tag">มีในคลัง</span>':''}</div>`).join('');
+    list.classList.add('open');
+  }
+  function choose(name){
+    input.value = name;
+    list.classList.remove('open');
+    input.dispatchEvent(new Event('change'));
+  }
+  input.addEventListener('focus', ()=>render(input.value));
+  input.addEventListener('input', ()=>render(input.value));
+  input.addEventListener('keydown', e=>{
+    const items2 = list.querySelectorAll('.ac-item');
+    if(e.key==='ArrowDown'){ e.preventDefault(); activeIdx=Math.min(activeIdx+1, items2.length-1); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); activeIdx=Math.max(activeIdx-1, 0); }
+    else if(e.key==='Enter'){ if(activeIdx>=0 && current[activeIdx]){ e.preventDefault(); choose(current[activeIdx]); } return; }
+    else return;
+    items2.forEach((el,idx)=>el.classList.toggle('ac-active', idx===activeIdx));
+    if(items2[activeIdx]) items2[activeIdx].scrollIntoView({block:'nearest'});
+  });
+  list.addEventListener('mousedown', e=>{ // mousedown so it fires before blur
+    const it = e.target.closest('.ac-item'); if(!it) return;
+    e.preventDefault();
+    choose(current[parseInt(it.dataset.idx,10)]);
+  });
+  document.addEventListener('click', e=>{
+    if(!e.target.closest('.ac-wrap')) list.classList.remove('open');
+  });
 }
 
 /* ---------- THAI DATE PICKER ---------- */
@@ -2077,6 +2136,7 @@ function unlockApp(){
   document.getElementById('app').classList.add('unlocked');
   setView('dashboard');
   populateItemNameSuggestions();
+  setupNameAutocomplete();
   loadData();
 }
 async function getStoredPin(){
