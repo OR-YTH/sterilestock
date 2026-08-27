@@ -227,6 +227,48 @@ input,select,textarea{font-family:inherit;}
 .log-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
 .log-row:last-child{border-bottom:none;}
 .log-row .lt{color:var(--steel);font-family:'IBM Plex Mono',monospace;font-size:11px;}
+/* ---------- HN HISTORY ---------- */
+.hn-search-row{display:flex;gap:8px;margin:-4px 0 12px;}
+.hn-search-row input{flex:1;min-width:0;padding:9px 12px;border:1px solid var(--line-strong);border-radius:9px;font-size:13.5px;outline:none;background:var(--sterile-white);transition:border-color 0.15s,background 0.15s;}
+.hn-search-row input:focus{border-color:var(--scrub-green-mid);background:#fff;box-shadow:0 0 0 3px var(--ok-pale);}
+.hn-hint{font-size:11px;color:var(--steel);margin:-6px 0 10px;}
+.log-row.clickable{cursor:pointer;border-radius:9px;padding-left:9px;padding-right:9px;margin:0 -9px;transition:background 0.13s;}
+.log-row.clickable:hover{background:var(--scrub-green-pale);}
+.log-row .row-arrow{color:var(--steel);flex-shrink:0;}
+.hn-case-card{border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:11px;background:var(--panel);}
+.hn-case-card.has-fail{border-color:var(--expired);box-shadow:inset 3px 0 0 var(--expired);}
+.hn-case-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+.hn-case-head b{font-size:14px;}
+.hn-case-time{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--steel);white-space:nowrap;}
+.hn-case-sub{font-size:11.5px;color:var(--steel);margin-top:2px;}
+.hn-item-table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12.5px;}
+.hn-item-table th{text-align:left;font-size:10.5px;color:var(--steel);font-weight:600;padding:5px 7px;border-bottom:1px solid var(--line);white-space:nowrap;}
+.hn-item-table td{padding:7px;border-bottom:1px solid var(--line);vertical-align:top;}
+.hn-item-table tr:last-child td{border-bottom:none;}
+.hn-item-table tr.fail{background:var(--expired-pale);}
+.hn-item-table tr.fail td{color:var(--expired);font-weight:600;}
+.hn-summary{display:flex;gap:9px;flex-wrap:wrap;margin:2px 0 16px;}
+.hn-stat{flex:1;min-width:90px;border:1px solid var(--line);border-radius:11px;padding:10px 12px;background:var(--sterile-white);}
+.hn-stat .n{font-family:'IBM Plex Mono',monospace;font-size:21px;font-weight:700;line-height:1;}
+.hn-stat .l{font-size:11px;color:var(--steel);margin-top:4px;}
+.hn-stat.bad{background:var(--expired-pale);border-color:var(--expired);}
+.hn-stat.bad .n{color:var(--expired);}
+.fail-flag{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--expired-pale);color:var(--expired);white-space:nowrap;}
+.pass-flag{font-size:10.5px;font-weight:600;color:var(--ok);white-space:nowrap;}
+.hn-scroll{max-height:56vh;overflow-y:auto;padding-right:4px;margin-right:-4px;}
+@media(max-width:600px){
+  .hn-stat{min-width:calc(50% - 5px);}
+  .hn-item-table thead{display:none;}
+  .hn-item-table tr{display:block;padding:8px 8px;border-bottom:1px solid var(--line);}
+  .hn-item-table tr:last-child{border-bottom:none;}
+  .hn-item-table td{display:block;border:none;padding:1px 0;text-align:left !important;}
+  .hn-item-table td:first-child{font-weight:600;}
+  .hn-item-table td:nth-child(2)::before{content:'Lot ';color:var(--steel);font-family:'Sarabun',sans-serif;}
+  .hn-item-table td:nth-child(3)::before{content:'หมดอายุ ';color:var(--steel);font-family:'Sarabun',sans-serif;}
+  .hn-item-table td:last-child{margin-top:4px;}
+  .hn-item-table tr.fail{border-radius:9px;}
+  .hn-scroll{max-height:none;}
+}
 .catalog-hit{background:var(--ok-pale);border:1px solid var(--ok);border-radius:9px;padding:10px 12px;font-size:12.5px;color:var(--ok);margin-top:8px;font-weight:600;display:flex;align-items:center;gap:7px;}
 .catalog-miss{background:var(--soon-pale);border:1px solid var(--soon);border-radius:9px;padding:10px 12px;font-size:12px;color:#7A5518;margin-top:8px;}
 .catalog-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
@@ -543,7 +585,12 @@ input,select,textarea{font-family:inherit;}
               <button class="btn-link-muted" id="btn-clear-usage" type="button" style="display:block;margin-top:6px;text-align:center;width:100%;">เริ่มเคสใหม่ / ล้างรายการ</button>
             </div>
             <div class="scan-panel scan-log">
-              <h3 class="section-title" style="margin-top:0;">ประวัติการใช้ล่าสุด</h3>
+              <h3 class="section-title" style="margin-top:0;">ประวัติการใช้</h3>
+              <div class="hn-search-row">
+                <input id="hn-search" class="mono" placeholder="ค้นหาด้วย HN / การผ่าตัด / ชื่อเครื่องมือ">
+                <button class="btn btn-sm" id="btn-hn-clear" type="button">ล้าง</button>
+              </div>
+              <p class="hn-hint">แตะที่รายการ เพื่อดูว่า HN นั้นใช้เครื่องมืออะไรไปบ้างทั้งหมด</p>
               <div id="usage-history-list"><p style="font-size:12.5px;color:var(--steel);">ยังไม่มีประวัติการใช้งาน</p></div>
             </div>
           </div>
@@ -662,6 +709,11 @@ input,select,textarea{font-family:inherit;}
 <!-- ITEM DETAIL MODAL -->
 <div class="overlay" id="detail-overlay">
   <div class="modal" id="detail-modal-content"></div>
+</div>
+
+<!-- HN USAGE HISTORY MODAL -->
+<div class="overlay" id="hn-overlay">
+  <div class="modal" style="max-width:640px;" id="hn-modal-content"></div>
 </div>
 
 <div id="print-area"><div class="label-sheet" id="print-sheet"></div></div>
@@ -1553,31 +1605,157 @@ function addItemToUsageCase(item, notFoundCode){
   renderUsageItemList();
 }
 
+/* รวม log รายชิ้นเป็น "เคส" (ts + HN เดียวกัน = เคสเดียวกัน) */
+function buildUsageCases(sourceLogs){
+  const groups = [];
+  const seen = new Map();
+  (sourceLogs||[]).forEach(l=>{
+    const key = l.ts + '|' + (l.hn||'');
+    if(!seen.has(key)){
+      seen.set(key, {ts:l.ts, hn:l.hn||'', operation:l.operation||'', department:l.department||'', notes:l.notes||'', items:[]});
+      groups.push(seen.get(key));
+    }
+    seen.get(key).items.push(l);
+  });
+  return groups;
+}
+function fmtCaseTime(ts){
+  const dt = new Date(ts);
+  return dt.toLocaleString('th-TH', {hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'2-digit'});
+}
+/* นับจำนวนชิ้นที่ไม่ผ่านเกณฑ์ */
+function failCountOf(list){ return list.filter(i=>i.pass===false).length; }
+
+let hnHistoryQuery = '';
+let hnModalOnlyFail = false;
+let hnModalHn = '';
+
 function renderUsageHistory(){
   const el = document.getElementById('usage-history-list');
   if(!el) return;
+  const q = hnHistoryQuery.trim().toLowerCase();
   if(!logs.length){ el.innerHTML = '<p style="font-size:12.5px;color:var(--steel);">ยังไม่มีประวัติการใช้งาน</p>'; return; }
-  const groups = [];
-  const seen = new Map();
-  logs.slice(0,80).forEach(l=>{
-    const key = l.ts + '|' + (l.hn||'');
-    if(!seen.has(key)){ seen.set(key, {ts:l.ts, hn:l.hn, operation:l.operation, department:l.department, notes:l.notes, items:[]}); groups.push(seen.get(key)); }
-    seen.get(key).items.push(l);
-  });
-  el.innerHTML = groups.slice(0,15).map(g=>{
-    const dt = new Date(g.ts);
-    const time = dt.toLocaleString('th-TH', {hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
-    const failCount = g.items.filter(i=>i.pass===false).length;
-    return `<div class="log-row" style="flex-direction:column;align-items:stretch;">
-      <div style="display:flex;justify-content:space-between;">
+  let groups = buildUsageCases(logs);
+  if(q){
+    groups = groups.filter(g=>{
+      if((g.hn||'').toLowerCase().includes(q)) return true;
+      if((g.operation||'').toLowerCase().includes(q)) return true;
+      if((g.department||'').toLowerCase().includes(q)) return true;
+      return g.items.some(i=>(i.name||'').toLowerCase().includes(q) || (i.lot||'').toLowerCase().includes(q));
+    });
+  }
+  if(!groups.length){
+    el.innerHTML = `<p style="font-size:12.5px;color:var(--steel);">ไม่พบเคสที่ตรงกับ “${escapeHtml(hnHistoryQuery)}”</p>`;
+    return;
+  }
+  const shown = groups.slice(0, q ? 40 : 15);
+  const head = q
+    ? `<p style="font-size:11.5px;color:var(--steel);margin:0 0 8px;">พบ ${groups.length} เคส${groups.length>shown.length?` (แสดง ${shown.length} เคสล่าสุด)`:''}</p>`
+    : '';
+  el.innerHTML = head + shown.map(g=>{
+    const failCount = failCountOf(g.items);
+    return `<div class="log-row clickable" data-hn-case="${escapeHtml(g.hn)}" style="flex-direction:column;align-items:stretch;">
+      <div style="display:flex;justify-content:space-between;gap:8px;">
         <span><b>${g.hn?('HN '+escapeHtml(g.hn)):'-'}</b>${g.operation?(' • '+escapeHtml(g.operation)):''}</span>
-        <span class="lt">${time}</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <span class="lt">${fmtCaseTime(g.ts)}</span>
+          <svg class="row-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </span>
       </div>
-      <div style="font-size:11px;color:var(--steel);">${g.department?escapeHtml(g.department)+' • ':''}${g.items.length} รายการ${failCount?` • <span style="color:var(--expired);">${failCount} ไม่ผ่านเกณฑ์</span>`:''}</div>
+      <div style="font-size:11px;color:var(--steel);">${g.department?escapeHtml(g.department)+' • ':''}${g.items.length} รายการ${failCount?` • <span style="color:var(--expired);font-weight:700;">${failCount} ไม่ผ่านเกณฑ์</span>`:''}</div>
       ${g.notes?`<div style="font-size:11px;color:var(--soon);margin-top:2px;">หมายเหตุ: ${escapeHtml(g.notes)}</div>`:''}
     </div>`;
   }).join('');
+  el.querySelectorAll('[data-hn-case]').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      const hn = row.dataset.hnCase;
+      if(!hn){ showToast('เคสนี้ไม่ได้บันทึก HN ไว้'); return; }
+      openHnHistoryModal(hn);
+    });
+  });
 }
+
+/* ---------- หน้าต่างสรุปการใช้เครื่องมือราย HN ---------- */
+function openHnHistoryModal(hn, keepFilter){
+  hnModalHn = hn;
+  if(!keepFilter) hnModalOnlyFail = false;
+  renderHnHistoryModal();
+  document.getElementById('hn-overlay').classList.add('active');
+}
+function renderHnHistoryModal(){
+  const hn = hnModalHn;
+  const box = document.getElementById('hn-modal-content');
+  if(!box) return;
+  const mine = logs.filter(l=>(l.hn||'') === hn);
+  let cases = buildUsageCases(mine);
+  const totalItems = mine.length;
+  const totalFail = failCountOf(mine);
+  const uniqNames = new Set(mine.map(l=>l.name)).size;
+  if(hnModalOnlyFail) cases = cases.filter(c=>failCountOf(c.items)>0);
+
+  const body = !cases.length
+    ? `<p style="font-size:13px;color:var(--steel);">${hnModalOnlyFail?'ไม่มีรายการที่ไม่ผ่านเกณฑ์ใน HN นี้':'ไม่พบประวัติของ HN นี้'}</p>`
+    : cases.map(c=>{
+        const fails = failCountOf(c.items);
+        const rows = c.items.map(i=>`
+          <tr class="${i.pass===false?'fail':''}">
+            <td>${escapeHtml(i.name||'-')}</td>
+            <td class="mono" style="font-size:11.5px;">${escapeHtml(i.lot||'-')}</td>
+            <td class="mono" style="font-size:11.5px;white-space:nowrap;">${fmtDate(i.expiry)}</td>
+            <td style="text-align:right;">${i.pass===false?'<span class="fail-flag">ไม่ผ่านเกณฑ์</span>':'<span class="pass-flag">ผ่าน</span>'}</td>
+          </tr>`).join('');
+        return `<div class="hn-case-card ${fails?'has-fail':''}">
+          <div class="hn-case-head">
+            <div>
+              <b>${escapeHtml(c.operation||'ไม่ระบุการผ่าตัด')}</b>
+              <div class="hn-case-sub">${c.department?escapeHtml(c.department)+' • ':''}${c.items.length} ชิ้น${fails?` • <span style="color:var(--expired);font-weight:700;">${fails} ไม่ผ่านเกณฑ์</span>`:''}</div>
+            </div>
+            <span class="hn-case-time">${fmtCaseTime(c.ts)}</span>
+          </div>
+          ${c.notes?`<div style="font-size:11.5px;color:var(--soon);margin-top:6px;">หมายเหตุ: ${escapeHtml(c.notes)}</div>`:''}
+          <table class="hn-item-table">
+            <thead><tr><th>ชื่อชุด/อุปกรณ์</th><th>Lot</th><th>หมดอายุ</th><th style="text-align:right;">เกณฑ์</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+      }).join('');
+
+  box.innerHTML = `
+    <h2 style="margin-bottom:4px;">ประวัติการใช้เครื่องมือ</h2>
+    <p style="font-size:13px;color:var(--steel);margin:0 0 14px;">HN <b class="mono" style="color:var(--ink);">${escapeHtml(hn)}</b></p>
+    <div class="hn-summary">
+      <div class="hn-stat"><div class="n">${buildUsageCases(mine).length}</div><div class="l">เคสที่บันทึก</div></div>
+      <div class="hn-stat"><div class="n">${totalItems}</div><div class="l">ชิ้นที่ใช้รวม</div></div>
+      <div class="hn-stat"><div class="n">${uniqNames}</div><div class="l">ชนิดเครื่องมือ</div></div>
+      <div class="hn-stat ${totalFail?'bad':''}"><div class="n">${totalFail}</div><div class="l">ไม่ผ่านเกณฑ์</div></div>
+    </div>
+    ${totalFail?`<div style="background:var(--expired-pale);border:1px solid var(--expired);color:var(--expired);border-radius:11px;padding:10px 13px;font-size:12.5px;font-weight:600;margin-bottom:14px;">พบ ${totalFail} ชิ้นที่ไม่ผ่านเกณฑ์การทำปลอดเชื้อ — ควรตรวจสอบเพิ่มเติม</div>`:''}
+    <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;margin-bottom:12px;${totalFail?'':'opacity:0.45;'}">
+      <input type="checkbox" id="hn-only-fail" ${hnModalOnlyFail?'checked':''} ${totalFail?'':'disabled'} style="width:16px;height:16px;accent-color:var(--expired);">
+      <span>แสดงเฉพาะเคสที่มีรายการไม่ผ่านเกณฑ์</span>
+    </label>
+    <div class="hn-scroll">${body}</div>
+    <div class="modal-actions"><button class="btn" id="btn-close-hn">ปิด</button></div>`;
+
+  const cb = document.getElementById('hn-only-fail');
+  if(cb) cb.addEventListener('change', ()=>{ hnModalOnlyFail = cb.checked; renderHnHistoryModal(); });
+  document.getElementById('btn-close-hn').onclick = ()=>document.getElementById('hn-overlay').classList.remove('active');
+}
+document.getElementById('hn-overlay').addEventListener('click', e=>{ if(e.target.id==='hn-overlay') e.currentTarget.classList.remove('active'); });
+document.getElementById('hn-search').addEventListener('input', e=>{ hnHistoryQuery = e.target.value; renderUsageHistory(); });
+document.getElementById('hn-search').addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){
+    const q = hnHistoryQuery.trim();
+    if(!q) return;
+    const exact = logs.find(l=>(l.hn||'').toLowerCase() === q.toLowerCase());
+    if(exact){ openHnHistoryModal(exact.hn); }
+  }
+});
+document.getElementById('btn-hn-clear').addEventListener('click', ()=>{
+  hnHistoryQuery = '';
+  document.getElementById('hn-search').value = '';
+  renderUsageHistory();
+});
 
 document.getElementById('btn-u-find').addEventListener('click', ()=>{
   const code = document.getElementById('u-scan-code').value;
