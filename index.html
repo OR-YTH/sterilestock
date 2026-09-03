@@ -802,6 +802,13 @@ function setSyncStatus(state){
     el.style.display='flex';
     el.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> เชื่อมต่อฐานข้อมูลไม่ได้ ตรวจสอบอินเทอร์เน็ต`;
     el.style.background='var(--expired-pale)'; el.style.color='var(--expired)';
+  }else if(state==='save-failed'){
+    el.style.display='flex';
+    el.style.flexWrap='wrap';
+    el.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> บันทึกขึ้นฐานข้อมูลกลางไม่สำเร็จ — ข้อมูลอยู่ในเครื่องนี้เท่านั้น <b>อย่าเพิ่งปิดหรือรีเฟรชหน้า</b> <button class="btn btn-sm" id="btn-retry-sync" type="button" style="margin-left:6px;">ลองบันทึกอีกครั้ง</button>`;
+    el.style.background='var(--expired-pale)'; el.style.color='var(--expired)';
+    const rb = document.getElementById('btn-retry-sync');
+    if(rb) rb.onclick = ()=>retryFailedSaves(true);
   }else{
     el.style.display='none';
   }
@@ -868,12 +875,23 @@ async function cloudGet(key){
     return res;
   }catch(e){ console.error('[SterileStock] AppsScript GET error', key, e); return {ok:false, data:null}; }
 }
+/* เขียนขึ้นคลาวด์ แล้ว "อ่านกลับมาตรวจ" ว่าขึ้นจริงหรือไม่
+   (การ POST ผ่าน iframe บอกไม่ได้ว่าฝั่ง Apps Script สำเร็จหรือพัง
+    ถ้าไม่ตรวจ ระบบจะเข้าใจผิดว่าบันทึกแล้ว → รอบ sync ถัดไปดึงของเก่ามาทับ → ข้อมูลหาย) */
 async function cloudSet(key, value){
   if(!APPS_SCRIPT_URL) return false;
-  try{
-    await formPostRequest(APPS_SCRIPT_URL, {key, data: value});
-    return true;
-  }catch(e){ console.error('[SterileStock] AppsScript POST error', key, e); return false; }
+  const expect = JSON.stringify(value);
+  for(let attempt=0; attempt<2; attempt++){
+    try{
+      await formPostRequest(APPS_SCRIPT_URL, {key, data: value});
+      const check = await cloudGet(key);
+      if(check.ok && JSON.stringify(check.data) === expect) return true;
+      console.warn('[SterileStock] verify failed', key, 'attempt', attempt+1,
+                   'expect', expect.length, 'got', check.ok ? JSON.stringify(check.data).length : 'n/a');
+    }catch(e){ console.error('[SterileStock] AppsScript POST error', key, e); }
+    await new Promise(r=>setTimeout(r, 1200));
+  }
+  return false;
 }
 function localGet(key, fallback){
   try{ const v = localStorage.getItem('sterile-'+key); return v ? JSON.parse(v) : fallback; }
@@ -883,6 +901,33 @@ function localSet(key, value){
   try{ localStorage.setItem('sterile-'+key, JSON.stringify(value)); }catch(e){}
 }
 let pendingSaves = { items: 0, 'usage-logs': 0, catalog: 0 };
+/* key ไหนที่บันทึกขึ้นคลาวด์ไม่สำเร็จ จะถูกล็อกไว้ที่นี่
+   ตราบใดที่ยังล็อกอยู่ ระบบจะไม่ยอมให้ข้อมูลจากคลาวด์มาทับข้อมูลในเครื่อง */
+let dirtyKeys = {};
+function markDirty(key){ dirtyKeys[key] = true; setSyncStatus('save-failed'); }
+function clearDirty(key){
+  delete dirtyKeys[key];
+  if(!Object.keys(dirtyKeys).length) setSyncStatus('ok');
+}
+function hasDirty(){ return Object.keys(dirtyKeys).length > 0; }
+/* ลองส่งข้อมูลที่ค้างขึ้นคลาวด์อีกครั้ง (เรียกอัตโนมัติทุกรอบ sync และตอนกดปุ่ม) */
+async function retryFailedSaves(manual){
+  const keys = Object.keys(dirtyKeys);
+  if(!keys.length) return true;
+  if(manual) showToast('กำลังลองบันทึกขึ้นฐานข้อมูลกลางอีกครั้ง...', true);
+  let allOk = true;
+  for(const k of keys){
+    const value = (k==='items') ? items : (k==='usage-logs') ? logs : (k==='catalog') ? catalog : null;
+    if(value === null){ clearDirty(k); continue; }
+    const ok = await cloudSet(k, value);
+    if(ok) clearDirty(k); else allOk = false;
+  }
+  if(manual){
+    if(allOk) showToast('บันทึกขึ้นฐานข้อมูลกลางสำเร็จแล้ว', true);
+    else showToast('ยังบันทึกไม่สำเร็จ — ข้อมูลยังอยู่ในเครื่องนี้ ปลอดภัย แต่ยังไม่ขึ้นฐานข้อมูลกลาง');
+  }
+  return allOk;
+}
 async function loadData(){
   if(!APPS_SCRIPT_URL){
     items = localGet('items', []);
@@ -905,12 +950,13 @@ async function loadData(){
     orDirectory = localGet('or-directory', {operations:[], departments:[]});
     setSyncStatus('offline');
   }else{
-    if(rItems.ok && pendingSaves.items===0){ items = rItems.data || []; localSet('items', items); }
-    else if(!rItems.ok && pendingSaves.items===0){ items = localGet('items', []); }
-    if(rLogs.ok && pendingSaves['usage-logs']===0){ logs = rLogs.data || []; localSet('usage-logs', logs); }
-    else if(!rLogs.ok && pendingSaves['usage-logs']===0){ logs = localGet('usage-logs', []); }
-    if(rCatalog.ok && pendingSaves.catalog===0){ catalog = rCatalog.data || []; localSet('catalog', catalog); }
-    else if(!rCatalog.ok && pendingSaves.catalog===0){ catalog = localGet('catalog', []); }
+    const canReplace = (k)=> pendingSaves[k]===0 && !dirtyKeys[k];
+    if(rItems.ok && canReplace('items')){ items = rItems.data || []; localSet('items', items); }
+    else if(!rItems.ok && canReplace('items')){ items = localGet('items', []); }
+    if(rLogs.ok && canReplace('usage-logs')){ logs = rLogs.data || []; localSet('usage-logs', logs); }
+    else if(!rLogs.ok && canReplace('usage-logs')){ logs = localGet('usage-logs', []); }
+    if(rCatalog.ok && canReplace('catalog')){ catalog = rCatalog.data || []; localSet('catalog', catalog); }
+    else if(!rCatalog.ok && canReplace('catalog')){ catalog = localGet('catalog', []); }
         orDirectory = rOrDir.ok ? (rOrDir.data || {operations:[], departments:[]}) : localGet('or-directory', {operations:[], departments:[]});
     if(!orDirectory.operations.length && !orDirectory.departments.length){
       orDirectory = { operations: SEED_OPERATIONS.slice(), departments: SEED_DEPARTMENTS.slice() };
@@ -921,7 +967,7 @@ async function loadData(){
     const rShelf = await cloudGet('item-shelf-memory');
     itemShelfMemory = (rShelf.ok && rShelf.data) ? rShelf.data : localGet('item-shelf-memory', {});
     localSet('item-shelf-memory', itemShelfMemory);
-    setSyncStatus('ok');
+    setSyncStatus(hasDirty() ? 'save-failed' : 'ok');
   }
   renderAll();
   populateOrSuggestions();
@@ -929,23 +975,32 @@ async function loadData(){
 async function saveItems(){
   localSet('items', items);
   pendingSaves.items++;
-  cloudSet('items', items).then(ok=>{
-    pendingSaves.items = Math.max(0, pendingSaves.items-1);
-    if(APPS_SCRIPT_URL && !ok) showToast('บันทึกขึ้นฐานข้อมูลกลางไม่สำเร็จ (บันทึกไว้ในเครื่องนี้ชั่วคราว)');
-  });
+  const ok = await cloudSet('items', items);
+  pendingSaves.items = Math.max(0, pendingSaves.items-1);
+  if(APPS_SCRIPT_URL){
+    if(ok) clearDirty('items');
+    else { markDirty('items'); showToast('บันทึกขึ้นฐานข้อมูลกลางไม่สำเร็จ — ข้อมูลอยู่ในเครื่องนี้ ดูแถบเตือนด้านบน'); }
+  }
+  return ok;
 }
 async function saveLogs(){
   localSet('usage-logs', logs);
   pendingSaves['usage-logs']++;
-  cloudSet('usage-logs', logs).then(()=>{
-    pendingSaves['usage-logs'] = Math.max(0, pendingSaves['usage-logs']-1);
-  });
+  const ok = await cloudSet('usage-logs', logs);
+  pendingSaves['usage-logs'] = Math.max(0, pendingSaves['usage-logs']-1);
+  if(APPS_SCRIPT_URL){
+    if(ok) clearDirty('usage-logs'); else markDirty('usage-logs');
+  }
+  return ok;
 }
 async function saveCatalog(){
   localSet('catalog', catalog);
-  cloudSet('catalog', catalog).then(ok=>{
-    if(APPS_SCRIPT_URL && !ok) showToast('บันทึกรายการมาตรฐานขึ้นฐานข้อมูลกลางไม่สำเร็จ');
-  });
+  const ok = await cloudSet('catalog', catalog);
+  if(APPS_SCRIPT_URL){
+    if(ok) clearDirty('catalog');
+    else { markDirty('catalog'); showToast('บันทึกรายการมาตรฐานขึ้นฐานข้อมูลกลางไม่สำเร็จ'); }
+  }
+  return ok;
 }
 async function saveOrDirectory(){
   localSet('or-directory', orDirectory);
@@ -960,8 +1015,16 @@ setInterval(async ()=>{
   const modalOpen = document.querySelector('.overlay.active');
   if(modalOpen) return;
   pollInFlight = true;
-  try{ await loadData(); } finally { pollInFlight = false; }
+  try{
+    if(hasDirty()) await retryFailedSaves(false);   // ส่งของที่ค้างขึ้นก่อน จะได้ไม่ถูกทับ
+    await loadData();
+  } finally { pollInFlight = false; }
 }, 30000);
+
+/* กันปิดหน้าจอตอนข้อมูลยังไม่ขึ้นฐานข้อมูลกลาง */
+window.addEventListener('beforeunload', e=>{
+  if(hasDirty()){ e.preventDefault(); e.returnValue = ''; return ''; }
+});
 
 /* ---------- NAV ---------- */
 const VIEW_TITLES = {dashboard:'ภาพรวม', inventory:'คลังสต๊อก', print:'พิมพ์สติกเกอร์', scan:'สแกนรับเข้า', usage:'ประวัติการใช้', standards:'ตรวจมาตรฐาน', reports:'รายงาน'};
@@ -1826,9 +1889,19 @@ document.getElementById('btn-save-usage').addEventListener('click', async ()=>{
   orDirectory.operations = orDirectory.operations.slice(0,200);
   orDirectory.departments = orDirectory.departments.slice(0,100);
 
-  await saveItems(); await saveLogs(); await saveOrDirectory();
+  const useBtn = document.getElementById('btn-save-usage');
+  const useBtnHtml = useBtn.innerHTML;
+  useBtn.disabled = true; useBtn.innerHTML = 'กำลังบันทึก...';
+  renderAll();
+  const okItems = await saveItems();
+  const okLogs = await saveLogs();
+  await saveOrDirectory();
+  useBtn.innerHTML = useBtnHtml;
   populateOrSuggestions();
-  showToast(`บันทึกเคส HN ${hn} เรียบร้อย (${currentUsageCase.items.length} รายการ)`, true);
+  const cloudOk = (okItems && okLogs) || !APPS_SCRIPT_URL;
+  showToast(cloudOk
+    ? `บันทึกเคส HN ${hn} เรียบร้อย (${currentUsageCase.items.length} รายการ)`
+    : `บันทึกเคส HN ${hn} ในเครื่องนี้แล้ว แต่ยังไม่ขึ้นฐานข้อมูลกลาง — ดูแถบเตือนด้านบน`, cloudOk);
   currentUsageCase = { items: [] };
   document.getElementById('u-hn').value='';
   document.getElementById('u-dept').value='';
@@ -1950,7 +2023,15 @@ document.getElementById('btn-receive-save').addEventListener('click', async ()=>
   };
   const newItem = Object.assign({id:uid(), code:genCode(), createdAt:Date.now()}, data);
   items.push(newItem);
-  await saveItems();
+  renderAll();                       // ให้เห็นยอดในคลังทันที ไม่ต้องรอคลาวด์
+
+  const saveBtn = document.getElementById('btn-receive-save');
+  const saveBtnHtml = saveBtn.innerHTML;
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = 'กำลังบันทึก...';
+  const savedOk = await saveItems();
+  saveBtn.disabled = false;
+  saveBtn.innerHTML = saveBtnHtml;
 
   if(document.getElementById('r-save-catalog').checked && lot){
     const idx = catalog.findIndex(c=>c.code.toUpperCase()===lot.toUpperCase());
@@ -1961,7 +2042,11 @@ document.getElementById('btn-receive-save').addEventListener('click', async ()=>
   }
 
   renderAll();
-  showToast(`รับเข้าคลังแล้ว: ${newItem.name}`, true);
+  showToast(
+    savedOk || !APPS_SCRIPT_URL
+      ? `รับเข้าคลังแล้ว: ${newItem.name} จำนวน ${newItem.qty} ชิ้น`
+      : `รับเข้าในเครื่องนี้แล้ว (${newItem.qty} ชิ้น) แต่ยังไม่ขึ้นฐานข้อมูลกลาง — ดูแถบเตือนด้านบน`,
+    savedOk || !APPS_SCRIPT_URL);
 
   const wrap = document.getElementById('receive-print-preview');
   wrap.innerHTML = `<p style="font-size:12.5px;color:var(--steel);margin-bottom:8px;">พร้อมพิมพ์สติกเกอร์สำหรับติดชุดนี้</p>` + stickerHTML(newItem, 'recv');
