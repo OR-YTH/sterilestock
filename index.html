@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Sterile Stock</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Sterile Stock v2026-09-03c</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/JsBarcode/3.11.5/JsBarcode.all.min.js"></script>
@@ -399,6 +402,7 @@ input,select,textarea{font-family:inherit;}
       <button class="nav-item" data-view="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3 v18 h18"/><rect x="7" y="12" width="3" height="6" rx="0.5"/><rect x="13" y="8" width="3" height="10" rx="0.5"/><rect x="19" y="5" width="3" height="13" rx="0.5"/></svg>รายงาน</button>
     </nav>
     <div class="sidebar-foot">
+      เวอร์ชัน <b id="app-version-tag" style="color:#B9E0F2;font-family:'IBM Plex Mono',monospace;">-</b><br>
       ข้อมูลซิงก์อัตโนมัติกับทีมทุกคนที่เปิดหน้านี้
       <div style="margin-top:8px;display:flex;gap:10px;">
         <button id="btn-change-pin" style="background:none;border:none;color:#8FB8CC;font-size:10px;text-decoration:underline;cursor:pointer;padding:0;">เปลี่ยนรหัสผ่าน</button>
@@ -425,6 +429,10 @@ input,select,textarea{font-family:inherit;}
       </button>
     </div>
     <div id="sync-status" style="display:none;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:8px 30px;"></div>
+    <div id="version-strip" style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--steel);padding:4px 16px;background:var(--sterile-white);border-bottom:1px solid var(--line);font-family:'IBM Plex Mono',monospace;">
+      <span id="version-strip-text">-</span>
+      <button id="btn-selftest" type="button" style="background:none;border:1px solid var(--line-strong);border-radius:7px;color:var(--surgical-blue);font-size:10.5px;font-weight:700;padding:3px 9px;cursor:pointer;font-family:inherit;">ตรวจสอบระบบ</button>
+    </div>
 
     <div class="content">
 
@@ -711,6 +719,19 @@ input,select,textarea{font-family:inherit;}
   <div class="modal" id="detail-modal-content"></div>
 </div>
 
+<!-- SELF TEST MODAL -->
+<div class="overlay" id="selftest-overlay">
+  <div class="modal" style="max-width:560px;">
+    <h2 style="margin-bottom:6px;">ตรวจสอบระบบ</h2>
+    <p style="font-size:12px;color:var(--steel);margin:0 0 14px;">ใช้ตรวจว่าเว็บกับฐานข้อมูลกลางคุยกันได้จริงหรือไม่ — ถ่ายหน้าจอนี้ส่งให้ผู้ดูแลระบบได้เลย</p>
+    <pre id="selftest-out" style="background:var(--sterile-white);border:1px solid var(--line-strong);border-radius:11px;padding:13px;font-size:11.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word;max-height:56vh;overflow:auto;font-family:'IBM Plex Mono',monospace;margin:0;">กำลังตรวจสอบ...</pre>
+    <div class="modal-actions">
+      <button class="btn" id="btn-copy-selftest">คัดลอกผล</button>
+      <button class="btn btn-primary" id="btn-close-selftest">ปิด</button>
+    </div>
+  </div>
+</div>
+
 <!-- HN USAGE HISTORY MODAL -->
 <div class="overlay" id="hn-overlay">
   <div class="modal" style="max-width:640px;" id="hn-modal-content"></div>
@@ -893,6 +914,10 @@ async function cloudSet(key, value){
   }
   return false;
 }
+/* ===== เวอร์ชันของไฟล์นี้ — ใช้เช็คว่าเครื่องกำลังเปิดไฟล์ตัวใหม่จริงหรือยัง ===== */
+const APP_VERSION = '2026-09-03c';
+const APP_VERSION_NOTE = 'แก้ข้อมูลหายหลังบันทึก + ประวัติราย HN';
+
 function localGet(key, fallback){
   try{ const v = localStorage.getItem('sterile-'+key); return v ? JSON.parse(v) : fallback; }
   catch(e){ return fallback; }
@@ -1805,6 +1830,80 @@ function renderHnHistoryModal(){
   document.getElementById('btn-close-hn').onclick = ()=>document.getElementById('hn-overlay').classList.remove('active');
 }
 document.getElementById('hn-overlay').addEventListener('click', e=>{ if(e.target.id==='hn-overlay') e.currentTarget.classList.remove('active'); });
+
+/* ---------- ตรวจสอบระบบ (Self-test) ---------- */
+function fmtBytes(n){ return n.toLocaleString('en-US') + ' ตัวอักษร'; }
+async function runSelfTest(){
+  const out = document.getElementById('selftest-out');
+  const L = [];
+  const push = (t)=>{ L.push(t); out.textContent = L.join('\n'); };
+
+  push('เวอร์ชันไฟล์เว็บ : ' + APP_VERSION);
+  push('เวลาที่ตรวจ     : ' + new Date().toLocaleString('th-TH'));
+  push('URL ฐานข้อมูล   : ' + (APPS_SCRIPT_URL ? '...' + APPS_SCRIPT_URL.slice(-28) : '(ยังไม่ได้ตั้งค่า)'));
+  push('');
+  const localItems = localGet('items', []);
+  push('ของในเครื่องนี้  : ' + items.length + ' รายการ (' + fmtBytes(JSON.stringify(items).length) + ')');
+  push('ใน localStorage : ' + localItems.length + ' รายการ');
+  push('');
+
+  if(!APPS_SCRIPT_URL){ push('ไม่ได้ตั้งค่าฐานข้อมูลกลาง — จบการตรวจสอบ'); return; }
+
+  push('[1/4] อ่านข้อมูลจากฐานข้อมูลกลาง...');
+  const r = await cloudGet('items');
+  if(!r.ok){
+    push('   ✗ อ่านไม่สำเร็จ — เว็บติดต่อ Apps Script ไม่ได้');
+    push('     ตรวจ: URL ถูกต้องไหม / Deploy เป็น "ทุกคน (Anyone)" หรือยัง');
+    return;
+  }
+  const cloudItems = Array.isArray(r.data) ? r.data : [];
+  push('   ✓ อ่านได้ : ' + cloudItems.length + ' รายการ (' + fmtBytes(JSON.stringify(r.data).length) + ')');
+  push('');
+
+  push('[2/4] ทดสอบเขียนข้อมูลก้อนเล็ก...');
+  const probe = { test: true, at: Date.now(), v: APP_VERSION };
+  await formPostRequest(APPS_SCRIPT_URL, {key:'selftest', data: probe});
+  const back = await cloudGet('selftest');
+  const smallOk = back.ok && back.data && back.data.at === probe.at;
+  push(smallOk ? '   ✓ เขียนก้อนเล็กได้ปกติ' : '   ✗ เขียนก้อนเล็กไม่ขึ้น — Deploy ยังไม่ให้สิทธิ์เขียน หรือ URL ผิด');
+  push('');
+
+  push('[3/4] ทดสอบเขียนข้อมูลก้อนใหญ่ (จำลอง 60,000 ตัวอักษร)...');
+  const big = { pad: 'x'.repeat(60000) };
+  await formPostRequest(APPS_SCRIPT_URL, {key:'selftest-big', data: big});
+  const bigBack = await cloudGet('selftest-big');
+  const bigOk = bigBack.ok && bigBack.data && bigBack.data.pad && bigBack.data.pad.length === 60000;
+  if(bigOk){
+    push('   ✓ ผ่าน — Apps Script เป็นตัวใหม่ (หั่นข้อมูลเป็นท่อนแล้ว)');
+  }else{
+    push('   ✗ ไม่ผ่าน — Apps Script ยังเป็นตัวเก่า (ติดเพดาน 50,000 ตัวอักษร/ช่อง)');
+    push('     ต้องอัปเดตโค้ด Code.gs แล้ว Deploy ทับเวอร์ชันเดิม');
+  }
+  push('');
+
+  push('[4/4] ทดสอบบันทึกของจริงแล้วอ่านกลับมาเทียบ...');
+  const realOk = await cloudSet('items', items);
+  push(realOk ? '   ✓ ผ่าน — ข้อมูลในคลังขึ้นฐานข้อมูลกลางครบถ้วน'
+              : '   ✗ ไม่ผ่าน — ข้อมูลในคลังบันทึกขึ้นไม่ได้ (นี่คือสาเหตุที่ของหาย)');
+  if(realOk) clearDirty('items'); else markDirty('items');
+  push('');
+  push('สรุป: ' + (smallOk && bigOk && realOk
+    ? 'ระบบปกติดี ✓'
+    : 'ยังมีปัญหา — ดูบรรทัดที่มีเครื่องหมาย ✗ ด้านบน'));
+}
+document.getElementById('btn-selftest').addEventListener('click', async ()=>{
+  document.getElementById('selftest-out').textContent = 'กำลังตรวจสอบ... (ใช้เวลาประมาณ 10-20 วินาที)';
+  document.getElementById('selftest-overlay').classList.add('active');
+  try{ await runSelfTest(); }
+  catch(e){ document.getElementById('selftest-out').textContent += '\n\nเกิดข้อผิดพลาด: ' + e.message; }
+});
+document.getElementById('btn-close-selftest').addEventListener('click', ()=>document.getElementById('selftest-overlay').classList.remove('active'));
+document.getElementById('selftest-overlay').addEventListener('click', e=>{ if(e.target.id==='selftest-overlay') e.currentTarget.classList.remove('active'); });
+document.getElementById('btn-copy-selftest').addEventListener('click', ()=>{
+  const t = document.getElementById('selftest-out').textContent;
+  if(navigator.clipboard) navigator.clipboard.writeText(t).then(()=>showToast('คัดลอกแล้ว', true), ()=>showToast('คัดลอกไม่สำเร็จ'));
+  else showToast('อุปกรณ์นี้คัดลอกอัตโนมัติไม่ได้ ให้ถ่ายหน้าจอแทน');
+});
 document.getElementById('hn-search').addEventListener('input', e=>{ hnHistoryQuery = e.target.value; renderUsageHistory(); });
 document.getElementById('hn-search').addEventListener('keydown', e=>{
   if(e.key === 'Enter'){
@@ -2400,6 +2499,11 @@ function unlockApp(){
   setView('dashboard');
   populateItemNameSuggestions();
   setupNameAutocomplete();
+  const vTag = document.getElementById('app-version-tag');
+  if(vTag) vTag.textContent = APP_VERSION;
+  const vStrip = document.getElementById('version-strip-text');
+  if(vStrip) vStrip.textContent = 'Sterile Stock ' + APP_VERSION;
+  console.log('[SterileStock] version', APP_VERSION, '—', APP_VERSION_NOTE);
   loadData();
 }
 async function getStoredPin(){
