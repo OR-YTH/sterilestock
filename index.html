@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Sterile Stock v2026-09-03c</title>
+<title>Sterile Stock v2026-09-04-v2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/JsBarcode/3.11.5/JsBarcode.all.min.js"></script>
@@ -826,10 +826,10 @@ function setSyncStatus(state){
   }else if(state==='save-failed'){
     el.style.display='flex';
     el.style.flexWrap='wrap';
-    el.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> บันทึกขึ้นฐานข้อมูลกลางไม่สำเร็จ — ข้อมูลอยู่ในเครื่องนี้เท่านั้น <b>อย่าเพิ่งปิดหรือรีเฟรชหน้า</b> <button class="btn btn-sm" id="btn-retry-sync" type="button" style="margin-left:6px;">ลองบันทึกอีกครั้ง</button>`;
+    el.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> ติดต่อฐานข้อมูลไม่ได้ — รายการล่าสุด<b>ยังไม่ถูกบันทึก</b> กรุณาลองใหม่ <button class="btn btn-sm" id="btn-retry-sync" type="button" style="margin-left:6px;">เชื่อมต่อใหม่</button>`;
     el.style.background='var(--expired-pale)'; el.style.color='var(--expired)';
     const rb = document.getElementById('btn-retry-sync');
-    if(rb) rb.onclick = ()=>retryFailedSaves(true);
+    if(rb) rb.onclick = ()=>{ showToast('กำลังเชื่อมต่อฐานข้อมูลอีกครั้ง...', true); loadData(); };
   }else{
     el.style.display='none';
   }
@@ -855,68 +855,52 @@ function jsonpRequest(url, timeoutMs){
     }, timeoutMs||18000);
   });
 }
-function formPostRequest(url, payloadObj){
-  return new Promise((resolve)=>{
-    const iframeName = 'ssframe_' + Math.random().toString(36).slice(2);
-    const iframe = document.createElement('iframe');
-    iframe.name = iframeName;
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
+/* ===== เวอร์ชันของไฟล์นี้ — ใช้เช็คว่าเครื่องเปิดไฟล์ตัวใหม่จริงหรือยัง ===== */
+const APP_VERSION = '2026-09-04-v2';
+const APP_VERSION_NOTE = 'ฐานข้อมูลแบบ 1 แถว = 1 รายการ (ต้องใช้คู่กับ Code_v2.gs)';
 
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = url;
-    form.target = iframeName;
+/* =====================================================================
+   ชั้นข้อมูล v2 — คุยกับ Apps Script แบบสั่งทีละรายการ
+   เดิม: ส่ง JSON ทั้งคลัง (~50KB) ทุกครั้งที่บันทึก → ช้า + ชนเพดาน 50,000 ตัวอักษร
+   ใหม่: ส่งเฉพาะรายการที่เปลี่ยน (ไม่กี่ร้อยตัวอักษร) → เร็ว และรู้ผลจริงทันที
+   ===================================================================== */
 
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = 'payload';
-    input.value = JSON.stringify(payloadObj);
-    form.appendChild(input);
-    document.body.appendChild(form);
+let apiOnline = true;
 
-    let resolved = false;
-    const finish = (ok)=>{
-      if(resolved) return; resolved = true;
-      setTimeout(()=>{
-        if(form.parentNode) form.parentNode.removeChild(form);
-        if(iframe.parentNode) iframe.parentNode.removeChild(iframe);
-      }, 1000);
-      resolve(ok);
+function apiCall(action, payload){
+  return new Promise(resolve=>{
+    if(!APPS_SCRIPT_URL){ resolve({ok:false, error:'ยังไม่ได้ตั้งค่าฐานข้อมูล'}); return; }
+    const cbName = 'sscb_' + Math.random().toString(36).slice(2);
+    const script = document.createElement('script');
+    let done = false;
+    const cleanup = ()=>{
+      try{ delete window[cbName]; }catch(e){ window[cbName] = undefined; }
+      if(script.parentNode) script.parentNode.removeChild(script);
     };
-    iframe.addEventListener('load', ()=> finish(true));
-    setTimeout(()=> finish(true), 4000);
-    form.submit();
+    const finish = (res)=>{ if(done) return; done = true; cleanup(); resolve(res); };
+    window[cbName] = (res)=> finish(res || {ok:false, error:'ไม่มีข้อมูลตอบกลับ'});
+    script.onerror = ()=> finish({ok:false, error:'เชื่อมต่อฐานข้อมูลไม่ได้'});
+    let url = APPS_SCRIPT_URL + '?action=' + encodeURIComponent(action) + '&callback=' + cbName;
+    if(payload) url += '&data=' + encodeURIComponent(JSON.stringify(payload));
+    script.src = url;
+    document.body.appendChild(script);
+    setTimeout(()=> finish({ok:false, error:'หมดเวลารอฐานข้อมูล'}), 25000);
   });
 }
-async function cloudGet(key){
-  if(!APPS_SCRIPT_URL) return {ok:false, data:null};
-  try{
-    const res = await jsonpRequest(`${APPS_SCRIPT_URL}?key=${encodeURIComponent(key)}`, 10000);
+
+/* เรียก API พร้อมจัดการข้อผิดพลาดให้เรียบร้อย — คืน true/false */
+async function apiDo(action, payload, failMsg){
+  const res = await apiCall(action, payload);
+  if(res.ok){
+    if(!apiOnline){ apiOnline = true; setSyncStatus('ok'); }
+    if(res.data && typeof res.data.rev !== 'undefined') lastRev = res.data.rev;
     return res;
-  }catch(e){ console.error('[SterileStock] AppsScript GET error', key, e); return {ok:false, data:null}; }
-}
-/* เขียนขึ้นคลาวด์ แล้ว "อ่านกลับมาตรวจ" ว่าขึ้นจริงหรือไม่
-   (การ POST ผ่าน iframe บอกไม่ได้ว่าฝั่ง Apps Script สำเร็จหรือพัง
-    ถ้าไม่ตรวจ ระบบจะเข้าใจผิดว่าบันทึกแล้ว → รอบ sync ถัดไปดึงของเก่ามาทับ → ข้อมูลหาย) */
-async function cloudSet(key, value){
-  if(!APPS_SCRIPT_URL) return false;
-  const expect = JSON.stringify(value);
-  for(let attempt=0; attempt<2; attempt++){
-    try{
-      await formPostRequest(APPS_SCRIPT_URL, {key, data: value});
-      const check = await cloudGet(key);
-      if(check.ok && JSON.stringify(check.data) === expect) return true;
-      console.warn('[SterileStock] verify failed', key, 'attempt', attempt+1,
-                   'expect', expect.length, 'got', check.ok ? JSON.stringify(check.data).length : 'n/a');
-    }catch(e){ console.error('[SterileStock] AppsScript POST error', key, e); }
-    await new Promise(r=>setTimeout(r, 1200));
   }
-  return false;
+  apiOnline = false;
+  setSyncStatus('save-failed');
+  showToast((failMsg || 'บันทึกไม่สำเร็จ') + ' — ' + (res.error || 'ไม่ทราบสาเหตุ'));
+  return res;
 }
-/* ===== เวอร์ชันของไฟล์นี้ — ใช้เช็คว่าเครื่องกำลังเปิดไฟล์ตัวใหม่จริงหรือยัง ===== */
-const APP_VERSION = '2026-09-03c';
-const APP_VERSION_NOTE = 'แก้ข้อมูลหายหลังบันทึก + ประวัติราย HN';
 
 function localGet(key, fallback){
   try{ const v = localStorage.getItem('sterile-'+key); return v ? JSON.parse(v) : fallback; }
@@ -925,131 +909,114 @@ function localGet(key, fallback){
 function localSet(key, value){
   try{ localStorage.setItem('sterile-'+key, JSON.stringify(value)); }catch(e){}
 }
-let pendingSaves = { items: 0, 'usage-logs': 0, catalog: 0 };
-/* key ไหนที่บันทึกขึ้นคลาวด์ไม่สำเร็จ จะถูกล็อกไว้ที่นี่
-   ตราบใดที่ยังล็อกอยู่ ระบบจะไม่ยอมให้ข้อมูลจากคลาวด์มาทับข้อมูลในเครื่อง */
-let dirtyKeys = {};
-function markDirty(key){ dirtyKeys[key] = true; setSyncStatus('save-failed'); }
-function clearDirty(key){
-  delete dirtyKeys[key];
-  if(!Object.keys(dirtyKeys).length) setSyncStatus('ok');
+function cacheAll(){
+  localSet('items', items); localSet('usage-logs', logs);
+  localSet('catalog', catalog); localSet('or-directory', orDirectory);
+  localSet('item-shelf-memory', itemShelfMemory);
 }
-function hasDirty(){ return Object.keys(dirtyKeys).length > 0; }
-/* ลองส่งข้อมูลที่ค้างขึ้นคลาวด์อีกครั้ง (เรียกอัตโนมัติทุกรอบ sync และตอนกดปุ่ม) */
-async function retryFailedSaves(manual){
-  const keys = Object.keys(dirtyKeys);
-  if(!keys.length) return true;
-  if(manual) showToast('กำลังลองบันทึกขึ้นฐานข้อมูลกลางอีกครั้ง...', true);
-  let allOk = true;
-  for(const k of keys){
-    const value = (k==='items') ? items : (k==='usage-logs') ? logs : (k==='catalog') ? catalog : null;
-    if(value === null){ clearDirty(k); continue; }
-    const ok = await cloudSet(k, value);
-    if(ok) clearDirty(k); else allOk = false;
-  }
-  if(manual){
-    if(allOk) showToast('บันทึกขึ้นฐานข้อมูลกลางสำเร็จแล้ว', true);
-    else showToast('ยังบันทึกไม่สำเร็จ — ข้อมูลยังอยู่ในเครื่องนี้ ปลอดภัย แต่ยังไม่ขึ้นฐานข้อมูลกลาง');
-  }
-  return allOk;
-}
+
+let lastRev = -1;
+
 async function loadData(){
-  if(!APPS_SCRIPT_URL){
+  if(!APPS_SCRIPT_URL){ setSyncStatus('unconfigured'); renderAll(); populateOrSuggestions(); return; }
+  const res = await apiCall('loadAll');
+  if(!res.ok){
+    // อ่านไม่ได้ → แสดงข้อมูลสำรองในเครื่อง แบบอ่านอย่างเดียว
+    apiOnline = false;
     items = localGet('items', []);
     logs = localGet('usage-logs', []);
     catalog = localGet('catalog', []);
     orDirectory = localGet('or-directory', {operations:[], departments:[]});
     itemShelfMemory = localGet('item-shelf-memory', {});
-    setSyncStatus('unconfigured');
-    renderAll();
-    populateOrSuggestions();
+    setSyncStatus('offline');
+    renderAll(); populateOrSuggestions();
     return;
   }
-  const [rItems, rLogs, rCatalog, rOrDir] = await Promise.all([
-    cloudGet('items'), cloudGet('usage-logs'), cloudGet('catalog'), cloudGet('or-directory')
-  ]);
-  if(!rItems.ok && !rLogs.ok && !rCatalog.ok && !rOrDir.ok){
-    items = localGet('items', []);
-    logs = localGet('usage-logs', []);
-    catalog = localGet('catalog', []);
-    orDirectory = localGet('or-directory', {operations:[], departments:[]});
-    setSyncStatus('offline');
-  }else{
-    const canReplace = (k)=> pendingSaves[k]===0 && !dirtyKeys[k];
-    if(rItems.ok && canReplace('items')){ items = rItems.data || []; localSet('items', items); }
-    else if(!rItems.ok && canReplace('items')){ items = localGet('items', []); }
-    if(rLogs.ok && canReplace('usage-logs')){ logs = rLogs.data || []; localSet('usage-logs', logs); }
-    else if(!rLogs.ok && canReplace('usage-logs')){ logs = localGet('usage-logs', []); }
-    if(rCatalog.ok && canReplace('catalog')){ catalog = rCatalog.data || []; localSet('catalog', catalog); }
-    else if(!rCatalog.ok && canReplace('catalog')){ catalog = localGet('catalog', []); }
-        orDirectory = rOrDir.ok ? (rOrDir.data || {operations:[], departments:[]}) : localGet('or-directory', {operations:[], departments:[]});
-    if(!orDirectory.operations.length && !orDirectory.departments.length){
-      orDirectory = { operations: SEED_OPERATIONS.slice(), departments: SEED_DEPARTMENTS.slice() };
-      localSet('or-directory', orDirectory);
-      saveOrDirectory();
-    }
-    localSet('or-directory', orDirectory);
-    const rShelf = await cloudGet('item-shelf-memory');
-    itemShelfMemory = (rShelf.ok && rShelf.data) ? rShelf.data : localGet('item-shelf-memory', {});
-    localSet('item-shelf-memory', itemShelfMemory);
-    setSyncStatus(hasDirty() ? 'save-failed' : 'ok');
-  }
+  apiOnline = true;
+  const d = res.data || {};
+  items = d.items || [];
+  logs = d.logs || [];
+  catalog = d.catalog || [];
+  const st = d.settings || {};
+  const savedDir = st['or-directory'] || {operations:[], departments:[]};
+  itemShelfMemory = st['item-shelf-memory'] || {};
+  lastRev = typeof d.rev !== 'undefined' ? d.rev : lastRev;
+
+  // รายการเริ่มต้นฝังอยู่ในไฟล์เว็บอยู่แล้ว ไม่ต้องเก็บซ้ำบนเซิร์ฟเวอร์
+  // เซิร์ฟเวอร์เก็บเฉพาะชื่อที่ผู้ใช้พิมพ์เพิ่มเอง → ข้อมูลที่ส่งไป-มาจึงเล็กเสมอ
+  const uniq = (a)=>Array.from(new Set(a.filter(x=>x && String(x).trim())));
+  orDirectory = {
+    operations: uniq([...(savedDir.operations||[]), ...SEED_OPERATIONS]),
+    departments: uniq([...(savedDir.departments||[]), ...SEED_DEPARTMENTS])
+  };
+  cacheAll();
+  setSyncStatus('ok');
   renderAll();
   populateOrSuggestions();
 }
-async function saveItems(){
-  localSet('items', items);
-  pendingSaves.items++;
-  const ok = await cloudSet('items', items);
-  pendingSaves.items = Math.max(0, pendingSaves.items-1);
-  if(APPS_SCRIPT_URL){
-    if(ok) clearDirty('items');
-    else { markDirty('items'); showToast('บันทึกขึ้นฐานข้อมูลกลางไม่สำเร็จ — ข้อมูลอยู่ในเครื่องนี้ ดูแถบเตือนด้านบน'); }
-  }
-  return ok;
+
+/* ----- คำสั่งรายการเดียว ----- */
+async function apiAddItem(item){
+  const r = await apiDo('addItem', {item}, 'รับเข้าคลังไม่สำเร็จ');
+  if(r.ok) cacheAll();
+  return r.ok;
 }
-async function saveLogs(){
-  localSet('usage-logs', logs);
-  pendingSaves['usage-logs']++;
-  const ok = await cloudSet('usage-logs', logs);
-  pendingSaves['usage-logs'] = Math.max(0, pendingSaves['usage-logs']-1);
-  if(APPS_SCRIPT_URL){
-    if(ok) clearDirty('usage-logs'); else markDirty('usage-logs');
-  }
-  return ok;
+async function apiUpdateItem(item){
+  const r = await apiDo('updateItem', {item}, 'บันทึกการแก้ไขไม่สำเร็จ');
+  if(r.ok) cacheAll();
+  return r.ok;
 }
-async function saveCatalog(){
-  localSet('catalog', catalog);
-  const ok = await cloudSet('catalog', catalog);
-  if(APPS_SCRIPT_URL){
-    if(ok) clearDirty('catalog');
-    else { markDirty('catalog'); showToast('บันทึกรายการมาตรฐานขึ้นฐานข้อมูลกลางไม่สำเร็จ'); }
-  }
-  return ok;
+async function apiDeleteItem(id){
+  const r = await apiDo('deleteItem', {id}, 'ลบรายการไม่สำเร็จ');
+  if(r.ok) cacheAll();
+  return r.ok;
 }
-async function saveOrDirectory(){
-  localSet('or-directory', orDirectory);
-  cloudSet('or-directory', orDirectory);
+/* บันทึกการใช้ 1 เคส — ตัดสต๊อกและลงประวัติที่เซิร์ฟเวอร์ในคราวเดียว */
+async function apiUseCase(caseObj){
+  const r = await apiDo('useCase', caseObj, 'บันทึกการใช้ไม่สำเร็จ');
+  return r.ok;
 }
+async function saveCatalogEntry(entry){
+  const r = await apiDo('setCatalog', {entry}, 'บันทึกรายการมาตรฐานไม่สำเร็จ');
+  if(r.ok) cacheAll();
+  return r.ok;
+}
+async function deleteCatalogEntry(code){
+  const r = await apiDo('deleteCatalog', {code}, 'ลบรายการมาตรฐานไม่สำเร็จ');
+  if(r.ok) cacheAll();
+  return r.ok;
+}
+async function saveSetting(key, value){
+  const r = await apiDo('setSetting', {key, value}, 'บันทึกการตั้งค่าไม่สำเร็จ');
+  if(r.ok) cacheAll();
+  return r.ok;
+}
+/* เพิ่มชื่อการผ่าตัด/แผนกใหม่ทีละรายการ (ส่งขึ้นไปแค่คำเดียว) */
+async function addDirEntry(kind, value){
+  if(!value) return true;
+  const r = await apiDo('addDirEntry', {kind, value}, 'บันทึกชื่อใหม่ไม่สำเร็จ');
+  if(r.ok) cacheAll();
+  return r.ok;
+}
+
 let appUnlocked = false;
 let pollInFlight = false;
 setInterval(async ()=>{
   if(!APPS_SCRIPT_URL) return;
   if(!appUnlocked) return;
   if(pollInFlight) return;
-  const modalOpen = document.querySelector('.overlay.active');
-  if(modalOpen) return;
+  if(document.querySelector('.overlay.active')) return;   // ไม่ขัดจังหวะตอนเปิดหน้าต่าง
   pollInFlight = true;
   try{
-    if(hasDirty()) await retryFailedSaves(false);   // ส่งของที่ค้างขึ้นก่อน จะได้ไม่ถูกทับ
-    await loadData();
+    const r = await apiCall('rev');                       // เบามาก แค่ตัวเลขเดียว
+    if(r.ok){
+      if(!apiOnline){ apiOnline = true; setSyncStatus('ok'); }
+      if(r.data && r.data.rev !== lastRev) await loadData();   // ดึงใหม่เฉพาะตอนมีคนแก้
+    }else{
+      apiOnline = false; setSyncStatus('offline');
+    }
   } finally { pollInFlight = false; }
 }, 30000);
-
-/* กันปิดหน้าจอตอนข้อมูลยังไม่ขึ้นฐานข้อมูลกลาง */
-window.addEventListener('beforeunload', e=>{
-  if(hasDirty()){ e.preventDefault(); e.returnValue = ''; return ''; }
-});
 
 /* ---------- NAV ---------- */
 const VIEW_TITLES = {dashboard:'ภาพรวม', inventory:'คลังสต๊อก', print:'พิมพ์สติกเกอร์', scan:'สแกนรับเข้า', usage:'ประวัติการใช้', standards:'ตรวจมาตรฐาน', reports:'รายงาน'};
@@ -1250,8 +1217,8 @@ document.getElementById('app').addEventListener('click', e=>{
 
 async function deleteItem(item){
   if(!confirm(`ลบ "${item.name}" ออกจากคลังหรือไม่?`)) return;
+  if(!await apiDeleteItem(item.id)) return;
   items = items.filter(i=>i.id!==item.id);
-  await saveItems();
   renderAll();
   showToast('ลบรายการแล้ว', true);
 }
@@ -1277,10 +1244,15 @@ document.getElementById('btn-confirm-quickuse').addEventListener('click', async 
 });
 async function useOne(item, source, operation, hn){
   if(item.qty<=0){ showToast('ชุดนี้หมดสต๊อกแล้ว'); return; }
+  const ok = await apiUseCase({
+    hn: hn||'', operation: operation||'', department:'', notes:'', ts: Date.now(),
+    items:[{itemId:item.id, count:1, pass: standardPass(item)}]
+  });
+  if(!ok) return;
   item.qty -= 1;
-  logs.unshift({id:uid(), itemId:item.id, name:item.name, code:item.code, ts:Date.now(), source, operation: operation||'', hn: hn||''});
-  logs = logs.slice(0,300);
-  await saveItems(); await saveLogs();
+  logs.unshift({id:'lg-'+uid(), itemId:item.id, name:item.name, code:item.code, lot:item.lot||'',
+                expiry:item.expiry||'', ts:Date.now(), source:'usage-module',
+                operation: operation||'', hn: hn||'', department:'', notes:'', pass: standardPass(item)});
   renderAll();
   showToast(`บันทึกการใช้งาน: ${item.name}`, true);
 }
@@ -1340,8 +1312,11 @@ function sampleItems(){
   return raw.map(d=>Object.assign({id:uid(), code:genCode(), createdAt:Date.now()}, d));
 }
 async function seedSampleData(){
-  items = items.concat(sampleItems());
-  await saveItems();
+  const fresh = sampleItems();
+  showToast('กำลังเพิ่มข้อมูลตัวอย่าง...', true);
+  for(const it of fresh){
+    if(await apiAddItem(it)) items.push(it);
+  }
   renderAll();
   showToast('เพิ่มข้อมูลตัวอย่างแล้ว', true);
 }
@@ -1362,15 +1337,22 @@ document.getElementById('btn-save-item').addEventListener('click', async ()=>{
     notes: document.getElementById('f-notes').value.trim(),
     checklist
   };
+  const btnS = document.getElementById('btn-save-item');
+  const btnSHtml = btnS.innerHTML;
+  btnS.disabled = true; btnS.innerHTML = 'กำลังบันทึก...';
+  let ok = false;
   if(editingId){
     const item = items.find(i=>i.id===editingId);
-    Object.assign(item, data);
-    showToast('บันทึกการแก้ไขแล้ว', true);
+    const merged = Object.assign({}, item, data);
+    ok = await apiUpdateItem(merged);
+    if(ok){ Object.assign(item, data); showToast('บันทึกการแก้ไขแล้ว', true); }
   }else{
-    items.push(Object.assign({id:uid(), code:genCode(), createdAt:Date.now()}, data));
-    showToast('เพิ่มรายการใหม่แล้ว', true);
+    const fresh = Object.assign({id:uid(), code:genCode(), createdAt:Date.now()}, data);
+    ok = await apiAddItem(fresh);
+    if(ok){ items.push(fresh); showToast('เพิ่มรายการใหม่แล้ว', true); }
   }
-  await saveItems();
+  btnS.disabled = false; btnS.innerHTML = btnSHtml;
+  if(!ok) return;
   document.getElementById('item-overlay').classList.remove('active');
   renderAll();
 });
@@ -1842,54 +1824,51 @@ async function runSelfTest(){
   push('เวลาที่ตรวจ     : ' + new Date().toLocaleString('th-TH'));
   push('URL ฐานข้อมูล   : ' + (APPS_SCRIPT_URL ? '...' + APPS_SCRIPT_URL.slice(-28) : '(ยังไม่ได้ตั้งค่า)'));
   push('');
-  const localItems = localGet('items', []);
-  push('ของในเครื่องนี้  : ' + items.length + ' รายการ (' + fmtBytes(JSON.stringify(items).length) + ')');
-  push('ใน localStorage : ' + localItems.length + ' รายการ');
-  push('');
-
   if(!APPS_SCRIPT_URL){ push('ไม่ได้ตั้งค่าฐานข้อมูลกลาง — จบการตรวจสอบ'); return; }
 
-  push('[1/4] อ่านข้อมูลจากฐานข้อมูลกลาง...');
-  const r = await cloudGet('items');
-  if(!r.ok){
-    push('   ✗ อ่านไม่สำเร็จ — เว็บติดต่อ Apps Script ไม่ได้');
-    push('     ตรวจ: URL ถูกต้องไหม / Deploy เป็น "ทุกคน (Anyone)" หรือยัง');
+  push('[1/3] ติดต่อฐานข้อมูล...');
+  const t0 = Date.now();
+  const ping = await apiCall('ping');
+  if(!ping.ok){
+    push('   ✗ ติดต่อไม่ได้ — ' + (ping.error || '') );
+    push('     ตรวจ: Deploy เป็น "ทุกคน (Anyone)" หรือยัง / URL ถูกต้องไหม');
     return;
   }
-  const cloudItems = Array.isArray(r.data) ? r.data : [];
-  push('   ✓ อ่านได้ : ' + cloudItems.length + ' รายการ (' + fmtBytes(JSON.stringify(r.data).length) + ')');
-  push('');
-
-  push('[2/4] ทดสอบเขียนข้อมูลก้อนเล็ก...');
-  const probe = { test: true, at: Date.now(), v: APP_VERSION };
-  await formPostRequest(APPS_SCRIPT_URL, {key:'selftest', data: probe});
-  const back = await cloudGet('selftest');
-  const smallOk = back.ok && back.data && back.data.at === probe.at;
-  push(smallOk ? '   ✓ เขียนก้อนเล็กได้ปกติ' : '   ✗ เขียนก้อนเล็กไม่ขึ้น — Deploy ยังไม่ให้สิทธิ์เขียน หรือ URL ผิด');
-  push('');
-
-  push('[3/4] ทดสอบเขียนข้อมูลก้อนใหญ่ (จำลอง 60,000 ตัวอักษร)...');
-  const big = { pad: 'x'.repeat(60000) };
-  await formPostRequest(APPS_SCRIPT_URL, {key:'selftest-big', data: big});
-  const bigBack = await cloudGet('selftest-big');
-  const bigOk = bigBack.ok && bigBack.data && bigBack.data.pad && bigBack.data.pad.length === 60000;
-  if(bigOk){
-    push('   ✓ ผ่าน — Apps Script เป็นตัวใหม่ (หั่นข้อมูลเป็นท่อนแล้ว)');
-  }else{
-    push('   ✗ ไม่ผ่าน — Apps Script ยังเป็นตัวเก่า (ติดเพดาน 50,000 ตัวอักษร/ช่อง)');
-    push('     ต้องอัปเดตโค้ด Code.gs แล้ว Deploy ทับเวอร์ชันเดิม');
+  const ver = (ping.data && ping.data.version) || '(ไม่ระบุ)';
+  push('   ✓ ติดต่อได้ใน ' + (Date.now()-t0) + ' มิลลิวินาที');
+  push('   หลังบ้านเวอร์ชัน : ' + ver);
+  if(ver !== 'v2'){
+    push('   ✗ หลังบ้านยังเป็นตัวเก่า — ต้องติดตั้ง Code_v2.gs แล้ว Deploy ทับเวอร์ชันเดิม');
+    return;
   }
   push('');
 
-  push('[4/4] ทดสอบบันทึกของจริงแล้วอ่านกลับมาเทียบ...');
-  const realOk = await cloudSet('items', items);
-  push(realOk ? '   ✓ ผ่าน — ข้อมูลในคลังขึ้นฐานข้อมูลกลางครบถ้วน'
-              : '   ✗ ไม่ผ่าน — ข้อมูลในคลังบันทึกขึ้นไม่ได้ (นี่คือสาเหตุที่ของหาย)');
-  if(realOk) clearDirty('items'); else markDirty('items');
+  push('[2/3] ดึงข้อมูลทั้งหมด...');
+  const t1 = Date.now();
+  const all = await apiCall('loadAll');
+  if(!all.ok){ push('   ✗ ดึงไม่สำเร็จ — ' + (all.error||'')); return; }
+  const d = all.data || {};
+  push('   ✓ ใช้เวลา ' + (Date.now()-t1) + ' มิลลิวินาที');
+  push('   ของในคลัง      : ' + (d.items||[]).length + ' รายการ');
+  push('   ประวัติการใช้   : ' + (d.logs||[]).length + ' รายการ');
+  push('   รายการมาตรฐาน  : ' + (d.catalog||[]).length + ' รายการ');
+  push('   เลขรุ่นข้อมูล   : ' + d.rev);
   push('');
-  push('สรุป: ' + (smallOk && bigOk && realOk
-    ? 'ระบบปกติดี ✓'
-    : 'ยังมีปัญหา — ดูบรรทัดที่มีเครื่องหมาย ✗ ด้านบน'));
+
+  push('[3/3] ทดสอบเขียนจริง (เพิ่มแล้วลบทิ้ง)...');
+  const probeId = 'selftest-' + Date.now().toString(36);
+  const t2 = Date.now();
+  const add = await apiCall('addItem', {item:{
+    id: probeId, code:'SS-TEST', name:'__ทดสอบระบบ (ลบอัตโนมัติ)__', lot:'TEST',
+    qty:1, sterileDate: todayStr(), expiry: todayStr(), method:'Autoclave (ไอน้ำ)',
+    notes:'รายการทดสอบ', checklist:[true,true,true,true], createdAt: Date.now()
+  }});
+  if(!add.ok){ push('   ✗ เขียนไม่ได้ — ' + (add.error||'')); return; }
+  const del = await apiCall('deleteItem', {id: probeId});
+  push('   ✓ เขียนและลบได้ปกติ (' + (Date.now()-t2) + ' มิลลิวินาที)');
+  if(!del.ok) push('   ⚠ ลบรายการทดสอบไม่สำเร็จ — ลบเองในชีต ITEMS ได้ (id ' + probeId + ')');
+  push('');
+  push('สรุป: ระบบปกติดี ✓  ไม่มีเพดานขนาดข้อมูลอีกแล้ว');
 }
 document.getElementById('btn-selftest').addEventListener('click', async ()=>{
   document.getElementById('selftest-out').textContent = 'กำลังตรวจสอบ... (ใช้เวลาประมาณ 10-20 วินาที)';
@@ -1973,34 +1952,38 @@ document.getElementById('btn-save-usage').addEventListener('click', async ()=>{
     const item = items.find(i=>i.id===ci.itemId);
     if(!item || item.qty < ci.count){ showToast(`สต๊อก ${ci.name} ไม่พอแล้ว กรุณาตรวจสอบอีกครั้ง`); return; }
   }
-  const ts = Date.now();
-  currentUsageCase.items.forEach(ci=>{
-    const item = items.find(i=>i.id===ci.itemId);
-    for(let n=0;n<ci.count;n++){
-      item.qty -= 1;
-      logs.unshift({id:uid(), itemId:item.id, name:item.name, code:item.code, lot:item.lot||'', expiry:item.expiry||'', ts, source:'usage-module', hn, operation:op, department:dept, notes, pass: ci.pass});
-    }
-  });
-  logs = logs.slice(0,300);
-
-  if(op && !orDirectory.operations.includes(op)) orDirectory.operations.unshift(op);
-  if(dept && !orDirectory.departments.includes(dept)) orDirectory.departments.unshift(dept);
-  orDirectory.operations = orDirectory.operations.slice(0,200);
-  orDirectory.departments = orDirectory.departments.slice(0,100);
-
   const useBtn = document.getElementById('btn-save-usage');
   const useBtnHtml = useBtn.innerHTML;
   useBtn.disabled = true; useBtn.innerHTML = 'กำลังบันทึก...';
-  renderAll();
-  const okItems = await saveItems();
-  const okLogs = await saveLogs();
-  await saveOrDirectory();
+
+  const ts = Date.now();
+  const ok = await apiUseCase({
+    hn, operation: op, department: dept, notes, ts,
+    items: currentUsageCase.items.map(ci=>({itemId:ci.itemId, count:ci.count, pass:ci.pass}))
+  });
+
   useBtn.innerHTML = useBtnHtml;
+  if(!ok){ useBtn.disabled = false; return; }
+
+  // สำเร็จแล้วค่อยอัปเดตหน้าจอให้ตรงกับเซิร์ฟเวอร์
+  const savedCount = currentUsageCase.items.length;
+  currentUsageCase.items.forEach(ci=>{
+    const item = items.find(i=>i.id===ci.itemId);
+    if(!item) return;
+    item.qty -= ci.count;
+    for(let n=0;n<ci.count;n++){
+      logs.unshift({id:'lg-'+uid(), itemId:item.id, name:item.name, code:item.code, lot:item.lot||'',
+                    expiry:item.expiry||'', ts, source:'usage-module', hn, operation:op,
+                    department:dept, notes, pass: ci.pass});
+    }
+  });
+
+  if(op && !orDirectory.operations.includes(op)){ orDirectory.operations.unshift(op); addDirEntry('operations', op); }
+  if(dept && !orDirectory.departments.includes(dept)){ orDirectory.departments.unshift(dept); addDirEntry('departments', dept); }
+  cacheAll();
   populateOrSuggestions();
-  const cloudOk = (okItems && okLogs) || !APPS_SCRIPT_URL;
-  showToast(cloudOk
-    ? `บันทึกเคส HN ${hn} เรียบร้อย (${currentUsageCase.items.length} รายการ)`
-    : `บันทึกเคส HN ${hn} ในเครื่องนี้แล้ว แต่ยังไม่ขึ้นฐานข้อมูลกลาง — ดูแถบเตือนด้านบน`, cloudOk);
+  showToast(`บันทึกเคส HN ${hn} เรียบร้อย (${savedCount} รายการ)`, true);
+
   currentUsageCase = { items: [] };
   document.getElementById('u-hn').value='';
   document.getElementById('u-dept').value='';
@@ -2052,7 +2035,7 @@ document.querySelectorAll('.shelf-btn').forEach(btn=>{
     setShelfDays(parseInt(btn.dataset.days,10));
     // จำอายุเก็บของชื่อเครื่องมือปัจจุบันไว้
     const name = document.getElementById('r-name').value.trim();
-    if(name){ itemShelfMemory[name] = parseInt(btn.dataset.days,10); localSet('item-shelf-memory', itemShelfMemory); cloudSet('item-shelf-memory', itemShelfMemory); }
+    if(name){ itemShelfMemory[name] = parseInt(btn.dataset.days,10); saveSetting('item-shelf-memory', itemShelfMemory); }
   });
 });
 // เมื่อเลือก/พิมพ์ชื่อเครื่องมือ ถ้าเคยจำอายุเก็บไว้ ให้เด้งอัตโนมัติ
@@ -2121,31 +2104,28 @@ document.getElementById('btn-receive-save').addEventListener('click', async ()=>
     notes:'รับเข้าจากจ่ายกลาง', checklist:[true,true,true,true]
   };
   const newItem = Object.assign({id:uid(), code:genCode(), createdAt:Date.now()}, data);
-  items.push(newItem);
-  renderAll();                       // ให้เห็นยอดในคลังทันที ไม่ต้องรอคลาวด์
 
   const saveBtn = document.getElementById('btn-receive-save');
   const saveBtnHtml = saveBtn.innerHTML;
   saveBtn.disabled = true;
   saveBtn.innerHTML = 'กำลังบันทึก...';
-  const savedOk = await saveItems();
+  const savedOk = await apiAddItem(newItem);
   saveBtn.disabled = false;
   saveBtn.innerHTML = saveBtnHtml;
+
+  if(!savedOk){ return; }              // ไม่ขึ้นฐานข้อมูล = ไม่เพิ่มในจอ จะได้ไม่หลอกตา
+  items.push(newItem);
+  renderAll();
 
   if(document.getElementById('r-save-catalog').checked && lot){
     const idx = catalog.findIndex(c=>c.code.toUpperCase()===lot.toUpperCase());
     const entry = {code:lot, name, shelfDays, method};
     if(idx>=0) catalog[idx]=entry; else catalog.push(entry);
-    await saveCatalog();
+    await saveCatalogEntry(entry);
     renderCatalogList();
   }
 
-  renderAll();
-  showToast(
-    savedOk || !APPS_SCRIPT_URL
-      ? `รับเข้าคลังแล้ว: ${newItem.name} จำนวน ${newItem.qty} ชิ้น`
-      : `รับเข้าในเครื่องนี้แล้ว (${newItem.qty} ชิ้น) แต่ยังไม่ขึ้นฐานข้อมูลกลาง — ดูแถบเตือนด้านบน`,
-    savedOk || !APPS_SCRIPT_URL);
+  showToast(`รับเข้าคลังแล้ว: ${newItem.name} จำนวน ${newItem.qty} ชิ้น`, true);
 
   const wrap = document.getElementById('receive-print-preview');
   wrap.innerHTML = `<p style="font-size:12.5px;color:var(--steel);margin-bottom:8px;">พร้อมพิมพ์สติกเกอร์สำหรับติดชุดนี้</p>` + stickerHTML(newItem, 'recv');
@@ -2196,8 +2176,8 @@ function renderCatalogList(){
     </div>`).join('');
   el.querySelectorAll('[data-del-cat]').forEach(b=>{
     b.addEventListener('click', async ()=>{
+      if(!await deleteCatalogEntry(b.dataset.delCat)) return;
       catalog = catalog.filter(c=>c.code!==b.dataset.delCat);
-      await saveCatalog();
       renderCatalogList();
       showToast('ลบรายการมาตรฐานแล้ว', true);
     });
@@ -2507,8 +2487,10 @@ function unlockApp(){
   loadData();
 }
 async function getStoredPin(){
-  const res = await cloudGet('app-pin');
-  if(res.ok && res.data) return String(res.data);
+  const res = await apiCall('loadAll');
+  if(res.ok && res.data && res.data.settings && res.data.settings['app-pin']){
+    return String(res.data.settings['app-pin']);
+  }
   return DEFAULT_PIN;
 }
 async function tryLogin(){
@@ -2544,7 +2526,7 @@ document.getElementById('btn-change-pin').addEventListener('click', async ()=>{
   if(next === null || !next.trim()){ return; }
   const confirmNext = prompt('กรอกรหัสผ่านใหม่อีกครั้งเพื่อยืนยัน:');
   if(confirmNext !== next){ alert('รหัสผ่านที่กรอกไม่ตรงกัน กรุณาลองใหม่'); return; }
-  await cloudSet('app-pin', next.trim());
+  if(!await saveSetting('app-pin', next.trim())) return;
   showToast('เปลี่ยนรหัสผ่านเรียบร้อยแล้ว', true);
 });
 
