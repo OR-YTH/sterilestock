@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Sterile Stock v2026-09-04-v2</title>
+<title>Sterile Stock v2026-09-09-hw1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/JsBarcode/3.11.5/JsBarcode.all.min.js"></script>
@@ -230,6 +230,33 @@ input,select,textarea{font-family:inherit;}
 .log-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
 .log-row:last-child{border-bottom:none;}
 .log-row .lt{color:var(--steel);font-family:'IBM Plex Mono',monospace;font-size:11px;}
+
+/* ---------- HARDWARE BARCODE SCANNER (USB keyboard-wedge) ---------- */
+.hw-box{margin-top:14px;border:1px solid var(--line-strong);border-radius:12px;padding:12px 14px;background:var(--sterile-white);transition:border-color .18s,background .18s,box-shadow .18s;}
+.hw-box.hw-active{border-color:var(--scrub-green);background:#EAF4F8;box-shadow:0 0 0 3px rgba(11,79,113,.09);}
+.hw-head{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.hw-title{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--scrub-green-dark);}
+.hw-title svg{width:16px;height:16px;flex:none;}
+.hw-switch{position:relative;display:inline-block;width:42px;height:24px;flex:none;cursor:pointer;}
+.hw-switch input{opacity:0;width:0;height:0;position:absolute;}
+.hw-switch .hw-slider{position:absolute;inset:0;background:#C3D2D9;border-radius:24px;transition:background .18s;}
+.hw-switch .hw-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .18s;box-shadow:0 1px 3px rgba(0,0,0,.25);}
+.hw-switch input:checked + .hw-slider{background:var(--scrub-green);}
+.hw-switch input:checked + .hw-slider:before{transform:translateX(18px);}
+.hw-input{width:100%;margin-top:10px;padding:11px 12px;border:1.5px dashed var(--line-strong);border-radius:9px;font-size:14px;letter-spacing:.5px;outline:none;background:#fff;transition:border-color .15s,box-shadow .15s;}
+.hw-input:focus{border-style:solid;border-color:var(--scrub-green);box-shadow:0 0 0 3px rgba(11,79,113,.12);}
+.hw-input:disabled{background:#F1F5F7;color:#9AAAB3;border-style:dashed;}
+.hw-hint{font-size:11px;color:var(--steel);margin:8px 0 0;line-height:1.55;}
+.hw-hint b{color:var(--scrub-green-dark);}
+.hw-last{margin-top:9px;font-size:11.5px;color:var(--steel);display:none;align-items:center;gap:7px;}
+.hw-last.show{display:flex;}
+.hw-last .hw-code{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;color:var(--scrub-green-dark);background:#DDEBF1;padding:2px 8px;border-radius:6px;letter-spacing:.6px;}
+.hw-flash{animation:hwFlash .5s ease;}
+@keyframes hwFlash{0%{background:#BFE8CF;}100%{background:#EAF4F8;}}
+.hw-ready-dot{width:7px;height:7px;border-radius:50%;background:#C3D2D9;flex:none;}
+.hw-box.hw-active .hw-ready-dot{background:#1F9D55;box-shadow:0 0 0 3px rgba(31,157,85,.18);animation:hwPulse 1.9s infinite;}
+@keyframes hwPulse{0%,100%{opacity:1;}50%{opacity:.45;}}
+
 /* ---------- HN HISTORY ---------- */
 .hn-search-row{display:flex;gap:8px;margin:-4px 0 12px;}
 .hn-search-row input{flex:1;min-width:0;padding:9px 12px;border:1px solid var(--line-strong);border-radius:9px;font-size:13.5px;outline:none;background:var(--sterile-white);transition:border-color 0.15s,background 0.15s;}
@@ -495,6 +522,17 @@ input,select,textarea{font-family:inherit;}
               <button class="btn" id="btn-recv-scan-stop" style="flex:1;justify-content:center;" disabled>หยุดกล้อง</button>
             </div>
             <p style="font-size:11.5px;color:var(--steel);margin:10px 0 0;">สแกนบาร์โค้ด/QR บนซองที่จ่ายกลางติดมา ระบบจะดึงรหัสมาใส่ในช่อง "เลข Lot" ให้อัตโนมัติ หรือกรอกเองได้</p>
+
+            <div class="hw-box" id="hw-box-recv">
+              <div class="hw-head">
+                <span class="hw-title"><span class="hw-ready-dot"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="6" y1="9" x2="6" y2="9"/><line x1="10" y1="9" x2="10" y2="9"/><line x1="14" y1="9" x2="14" y2="9"/><line x1="18" y1="9" x2="18" y2="9"/><line x1="7" y1="14" x2="17" y2="14"/></svg>ใช้เครื่องยิงบาร์โค้ด (USB)</span>
+                <label class="hw-switch"><input type="checkbox" id="hw-recv-toggle"><span class="hw-slider"></span></label>
+              </div>
+              <input id="hw-recv-input" class="mono hw-input" placeholder="ยิงบาร์โค้ดได้เลย — ไม่ต้องคลิกช่องนี้" autocomplete="off" spellcheck="false" disabled>
+              <div class="hw-last" id="hw-recv-last"></div>
+              <p class="hw-hint">เปิดสวิตช์แล้ว <b>ยิงบาร์โค้ดบนซองได้ทันที</b> ไม่ต้องคลิกช่องไหนก่อน ระบบรับรหัสไปใส่ "เลข Lot" ให้เอง<br>รองรับทั้งแป้นพิมพ์ไทยและอังกฤษ &nbsp;•&nbsp; ถ้ายิงแล้วเงียบ ให้ตั้งเครื่องยิงเปิด <b>Interleaved 2 of 5</b> และเติม <b>Enter (CR)</b> ท้ายรหัส</p>
+            </div>
+
             <div id="catalog-match" style="margin-top:10px;"></div>
           </div>
           <div class="scan-panel">
@@ -580,6 +618,17 @@ input,select,textarea{font-family:inherit;}
   <input id="u-scan-code" placeholder="สแกน QR ของแอป หรือบาร์โค้ดจ่ายกลางก็ได้" class="mono">
   <button class="btn btn-outline-blue" id="btn-u-find">เพิ่ม</button>
 </div>
+
+<div class="hw-box" id="hw-box-usage">
+  <div class="hw-head">
+    <span class="hw-title"><span class="hw-ready-dot"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="6" y1="9" x2="6" y2="9"/><line x1="10" y1="9" x2="10" y2="9"/><line x1="14" y1="9" x2="14" y2="9"/><line x1="18" y1="9" x2="18" y2="9"/><line x1="7" y1="14" x2="17" y2="14"/></svg>ใช้เครื่องยิงบาร์โค้ด (USB)</span>
+    <label class="hw-switch"><input type="checkbox" id="hw-usage-toggle"><span class="hw-slider"></span></label>
+  </div>
+  <input id="hw-usage-input" class="mono hw-input" placeholder="ยิงบาร์โค้ดได้เลย — ไม่ต้องคลิกช่องนี้" autocomplete="off" spellcheck="false" disabled>
+  <div class="hw-last" id="hw-usage-last"></div>
+  <p class="hw-hint">ยิงต่อกันได้เรื่อยๆ ทีละชิ้น ระบบเพิ่มเข้ารายการเคสให้อัตโนมัติ &nbsp;•&nbsp; ยิงซ้ำรหัสเดิมภายใน 2 วินาที ระบบจะข้ามให้ กันเพิ่มซ้ำ</p>
+</div>
+
 <div id="u-scan-feedback"></div>
           </div>
           <div>
@@ -856,7 +905,7 @@ function jsonpRequest(url, timeoutMs){
   });
 }
 /* ===== เวอร์ชันของไฟล์นี้ — ใช้เช็คว่าเครื่องเปิดไฟล์ตัวใหม่จริงหรือยัง ===== */
-const APP_VERSION = '2026-09-04-v2';
+const APP_VERSION = '2026-09-09-hw1';
 const APP_VERSION_NOTE = 'ฐานข้อมูลแบบ 1 แถว = 1 รายการ (ต้องใช้คู่กับ Code_v2.gs)';
 
 /* =====================================================================
@@ -1595,15 +1644,30 @@ document.getElementById('btn-download-zpl').addEventListener('click', async ()=>
   }
 });
 
+/* เทียบรหัสแบบยืดหยุ่น: ตัด 0 นำหน้าและช่องว่างทิ้ง
+   (เครื่องยิงบาร์โค้ดบางตัวเติม/ตัด 0 นำหน้าเองตามชนิดบาร์โค้ด) */
+function codeKey(s){
+  return String(s==null?'':s).trim().toUpperCase().replace(/\s+/g,'').replace(/^0+(?=.)/,'');
+}
 function findByCode(code){
   if(!code) return null;
   const c = code.trim().toUpperCase();
   const own = items.find(i=>i.code.toUpperCase()===c);
   if(own) return own;
   const candidates = items.filter(i=>(i.lot||'').trim().toUpperCase()===c && i.qty>0);
-  if(!candidates.length) return null;
-  candidates.sort((a,b)=>daysUntil(a.expiry)-daysUntil(b.expiry));
-  return candidates[0];
+  if(candidates.length){
+    candidates.sort((a,b)=>daysUntil(a.expiry)-daysUntil(b.expiry));
+    return candidates[0];
+  }
+  // ---- fallback: เทียบแบบไม่สน 0 นำหน้า ----
+  const k = codeKey(code);
+  if(!k) return null;
+  const own2 = items.find(i=>codeKey(i.code)===k);
+  if(own2) return own2;
+  const loose = items.filter(i=>codeKey(i.lot)===k && i.qty>0);
+  if(!loose.length) return null;
+  loose.sort((a,b)=>daysUntil(a.expiry)-daysUntil(b.expiry));
+  return loose[0];
 }
 
 /* ---------- USAGE HISTORY (HN + operation-centric case recording) ---------- */
@@ -2053,8 +2117,15 @@ function onReceiveScanSuccess(decodedText){
 }
 function applyCatalogMatch(code){
   const matchBox = document.getElementById('catalog-match');
-  const entry = catalog.find(c=>c.code.toUpperCase() === code.trim().toUpperCase());
+  let entry = catalog.find(c=>c.code.toUpperCase() === code.trim().toUpperCase());
+  if(!entry && typeof codeKey === 'function'){
+    const k = codeKey(code);
+    if(k) entry = catalog.find(c=>codeKey(c.code) === k);
+  }
   if(entry){
+    // ถ้าเครื่องยิงส่งรหัสมาพร้อม 0 นำหน้า ให้ใช้รหัสมาตรฐานในระบบแทน ข้อมูลจะได้ไม่แตกกัน
+    const lotEl = document.getElementById('r-lot');
+    if(lotEl && lotEl.value.trim() !== entry.code) lotEl.value = entry.code;
     document.getElementById('r-name').value = entry.name;
     document.getElementById('r-shelf-days').value = entry.shelfDays;
     document.getElementById('r-method').value = entry.method;
@@ -2087,6 +2158,266 @@ async function stopReceiveScanner(){
 document.getElementById('btn-recv-scan-start').addEventListener('click', startReceiveScanner);
 document.getElementById('btn-recv-scan-stop').addEventListener('click', stopReceiveScanner);
 document.getElementById('r-lot').addEventListener('change', e=>{ if(e.target.value.trim()) applyCatalogMatch(e.target.value.trim()); });
+
+/* ==================================================================
+   HARDWARE BARCODE SCANNER — USB keyboard-wedge (Zebra DS2208 ฯลฯ)
+   เครื่องยิงบาร์โค้ดทำตัวเป็นคีย์บอร์ด: พิมพ์รหัส + Enter
+   โมดูลนี้ดักจังหวะการพิมพ์ที่เร็วผิดมนุษย์ แล้วส่งเข้าฟังก์ชันเดิม
+   ================================================================== */
+const HW_MODES = {
+  recv:  { view:'scan',  box:'hw-box-recv',  input:'hw-recv-input',  toggle:'hw-recv-toggle',  last:'hw-recv-last',  store:'hw-scanner-recv'  },
+  usage: { view:'usage', box:'hw-box-usage', input:'hw-usage-input', toggle:'hw-usage-toggle', last:'hw-usage-last', store:'hw-scanner-usage' }
+};
+const hwState = { recv:false, usage:false };
+
+/* --- แก้ปัญหาคอมตั้งภาษาไทยค้างไว้: แปลงอักษรไทยกลับเป็นคีย์เดิม (เกษมณี) --- */
+const HW_TH2EN = {
+  'ๅ':'1','/':'2','_':'3','ภ':'4','ถ':'5','ุ':'6','ึ':'7','ค':'8','ต':'9','จ':'0','ข':'-','ช':'=',
+  '๑':'1','๒':'2','๓':'3','๔':'4','๕':'5','๖':'6','๗':'7','๘':'8','๙':'9','๐':'0',
+  'ๆ':'q','ไ':'w','ำ':'e','พ':'r','ะ':'t','ั':'y','ี':'u','ร':'i','น':'o','ย':'p','บ':'[','ล':']',
+  'ฟ':'a','ห':'s','ก':'d','ด':'f','เ':'g','้':'h','่':'j','า':'k','ส':'l','ว':';','ง':"'",
+  'ผ':'z','ป':'x','แ':'c','อ':'v','ิ':'b','ื':'n','ท':'m','ม':',','ใ':'.','ฝ':'/'
+};
+function hwFixThai(s){
+  if(!s) return s;
+  if(/[0-9A-Za-z]/.test(s)) return s;          // เป็นอักษรละตินอยู่แล้ว ไม่ต้องแปลง
+  let out='', changed=false;
+  for(const ch of s){
+    if(HW_TH2EN[ch] !== undefined){ out += HW_TH2EN[ch]; changed = true; }
+    else out += ch;
+  }
+  return changed ? out : s;
+}
+
+/* --- ทำความสะอาดรหัสที่ได้จากเครื่องยิง --- */
+function hwCleanCode(raw){
+  let s = String(raw==null?'':raw);
+  s = s.replace(/[\x00-\x1F\x7F]/g,'').replace(/\s+/g,'').trim();
+  s = hwFixThai(s);
+  return s;
+}
+
+/* --- อ่านตัวอักษรจาก event โดยไม่สนภาษาแป้นพิมพ์ (ใช้ e.code) --- */
+function hwKeyChar(e){
+  if(e.ctrlKey || e.altKey || e.metaKey) return null;
+  const c = e.code || '';
+  if(/^Digit[0-9]$/.test(c)){
+    if(e.shiftKey && typeof e.key === 'string' && /^[!-~]$/.test(e.key)) return e.key;
+    return c.slice(5);
+  }
+  if(/^Numpad[0-9]$/.test(c)) return c.slice(6);
+  if(/^Key[A-Z]$/.test(c)) return e.shiftKey ? c.slice(3) : c.slice(3).toLowerCase();
+  if(c === 'Minus' || c === 'NumpadSubtract') return '-';
+  if(c === 'Period' || c === 'NumpadDecimal') return '.';
+  if(c === 'Slash'  || c === 'NumpadDivide')  return '/';
+  if(c === 'Space') return null;
+  if(typeof e.key === 'string' && e.key.length === 1) return hwFixThai(e.key);   // เผื่อเบราว์เซอร์ไม่ส่ง e.code
+  return null;
+}
+
+/* --- เสียงตอบรับ --- */
+let hwAudioCtx = null;
+function hwBeep(ok){
+  try{
+    if(!hwAudioCtx) hwAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(hwAudioCtx.state === 'suspended') hwAudioCtx.resume();
+    const o = hwAudioCtx.createOscillator(), g = hwAudioCtx.createGain();
+    o.type = 'square';
+    o.frequency.value = ok ? 1180 : 320;
+    g.gain.setValueAtTime(0.055, hwAudioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, hwAudioCtx.currentTime + (ok ? 0.09 : 0.26));
+    o.connect(g); g.connect(hwAudioCtx.destination);
+    o.start(); o.stop(hwAudioCtx.currentTime + (ok ? 0.1 : 0.28));
+  }catch(err){}
+}
+
+/* --- แสดงรหัสล่าสุดที่ยิงได้ --- */
+function hwShowLast(key, code){
+  const cfg = HW_MODES[key]; if(!cfg) return;
+  const el = document.getElementById(cfg.last);
+  const box = document.getElementById(cfg.box);
+  if(el){
+    el.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1F9D55" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>อ่านล่าสุด</span><span class="hw-code">'+escapeHtml(code)+'</span>';
+    el.classList.add('show');
+  }
+  if(box){ box.classList.remove('hw-flash'); void box.offsetWidth; box.classList.add('hw-flash'); }
+}
+
+/* --- เปิด/ปิดโหมด --- */
+function hwSetMode(key, on){
+  const cfg = HW_MODES[key]; if(!cfg) return;
+  hwState[key] = !!on;
+  const box = document.getElementById(cfg.box);
+  const inp = document.getElementById(cfg.input);
+  const tgl = document.getElementById(cfg.toggle);
+  if(box) box.classList.toggle('hw-active', !!on);
+  if(inp){ inp.disabled = !on; if(!on) inp.value = ''; }
+  if(tgl) tgl.checked = !!on;
+  try{ localStorage.setItem(cfg.store, on ? '1' : '0'); }catch(e){}
+  if(on){
+    // ปิดกล้องเพื่อไม่ให้ชนกัน + ประหยัดแบต
+    if(key === 'recv')  stopReceiveScanner();
+    if(key === 'usage') stopUsageScanner();
+    hwFocus(key);
+  }
+}
+function hwFocus(key){
+  const cfg = HW_MODES[key]; if(!cfg) return;
+  if(!hwState[key]) return;
+  if(currentView !== cfg.view) return;
+  const inp = document.getElementById(cfg.input);
+  if(!inp || inp.disabled) return;
+  const ae = document.activeElement;
+  // แตะ focus เฉพาะตอนที่ยังไม่มีอะไรถูกโฟกัส — ไม่แย่งจากช่องกรอกหรือปุ่มที่ผู้ใช้กำลังใช้อยู่
+  if(ae && ae !== document.body && ae !== document.documentElement && ae !== inp) return;
+  try{ inp.focus({preventScroll:true}); }catch(e){ try{ inp.focus(); }catch(e2){} }
+}
+
+/* --- โหมดที่ควรรับรหัสตอนนี้ --- */
+function hwActiveKey(){
+  if(typeof appUnlocked !== 'undefined' && !appUnlocked) return null;
+  const gate = document.getElementById('login-gate');
+  if(gate && gate.style.display !== 'none') return null;
+  if(currentView === 'scan'  && hwState.recv)  return 'recv';
+  if(currentView === 'usage' && hwState.usage) return 'usage';
+  if(hwState.recv || hwState.usage) return 'search';   // หน้าอื่น ๆ → ส่งเข้าช่องค้นหา
+  return null;
+}
+
+/* --- บัฟเฟอร์จับจังหวะการยิง --- */
+const HW_GAP = 60;       // ms ระหว่างตัวอักษร (คนพิมพ์ไม่เร็วขนาดนี้)
+const HW_MIN = 4;        // ความยาวขั้นต่ำ
+const HW_AUTO_END = 150; // ถ้าเครื่องยิงไม่ได้ตั้ง Enter ท้ายรหัส
+let hwBuf = '', hwStartT = 0, hwLastT = 0, hwTgt = null, hwTgtVal = null, hwAutoTimer = null;
+
+function hwReset(){
+  hwBuf = ''; hwStartT = 0; hwLastT = 0; hwTgt = null; hwTgtVal = null;
+  if(hwAutoTimer){ clearTimeout(hwAutoTimer); hwAutoTimer = null; }
+}
+function hwIsBurst(){
+  const n = hwBuf.length;
+  if(n < HW_MIN) return false;
+  const span = hwLastT - hwStartT;
+  return (span / Math.max(1, n - 1)) <= HW_GAP;
+}
+function hwRestoreTarget(){
+  // คืนค่าเดิมให้ช่องที่ถูกเครื่องยิงพิมพ์ใส่โดยไม่ตั้งใจ
+  if(hwTgt && hwTgtVal !== null){
+    const cfgKeys = Object.keys(HW_MODES).map(k=>HW_MODES[k].input);
+    if(cfgKeys.indexOf(hwTgt.id) === -1){
+      try{ hwTgt.value = hwTgtVal; }catch(e){}
+    }else{
+      try{ hwTgt.value = ''; }catch(e){}
+    }
+  }
+}
+function hwRoute(key, code){
+  if(!code) return;
+  if(key === 'recv'){
+    onReceiveScanSuccess(code);
+    hwShowLast('recv', code);
+    hwBeep(true);
+    hwFocus('recv');
+  }else if(key === 'usage'){
+    onUsageScanSuccess(code);
+    hwShowLast('usage', code);
+    hwBeep(true);
+    hwFocus('usage');
+  }else if(key === 'search'){
+    const gs = document.getElementById('global-search');
+    if(gs){
+      gs.value = code;
+      gs.dispatchEvent(new Event('input', {bubbles:true}));
+      setView('inventory');
+      showToast('ค้นหารหัสที่ยิงมา: ' + code, true);
+      hwBeep(true);
+    }
+  }
+}
+function hwCommit(key, rawOverride){
+  const code = hwCleanCode(rawOverride !== undefined ? rawOverride : hwBuf);
+  hwRestoreTarget();
+  hwReset();
+  if(!code){ return; }
+  hwRoute(key, code);
+}
+
+document.addEventListener('keydown', function(e){
+  const key = hwActiveKey();
+  if(!key) return;
+  if(e.isComposing) return;
+
+  if(e.key === 'Enter' || e.code === 'NumpadEnter'){
+    if(hwIsBurst()){
+      e.preventDefault(); e.stopPropagation();
+      hwCommit(key);
+      return;
+    }
+    // พิมพ์เองในช่องของโหมดนี้ แล้วกด Enter
+    const cfg = HW_MODES[key];
+    if(cfg){
+      const inp = document.getElementById(cfg.input);
+      if(inp && document.activeElement === inp && inp.value.trim()){
+        e.preventDefault(); e.stopPropagation();
+        const v = inp.value; inp.value = '';
+        hwReset();
+        hwRoute(key, hwCleanCode(v));
+        return;
+      }
+    }
+    hwReset();
+    return;
+  }
+  if(e.key === 'Escape'){ hwReset(); return; }
+
+  const ch = hwKeyChar(e);
+  if(ch === null) return;
+
+  const now = Date.now();
+  if(hwLastT === 0 || (now - hwLastT) > HW_GAP){
+    hwBuf = '';
+    hwStartT = now;
+    const t = e.target;
+    if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')){ hwTgt = t; hwTgtVal = t.value; }
+    else { hwTgt = null; hwTgtVal = null; }
+  }
+  hwLastT = now;
+  hwBuf += ch;
+
+  if(hwAutoTimer) clearTimeout(hwAutoTimer);
+  hwAutoTimer = setTimeout(function(){
+    // เครื่องยิงบางตัวไม่ได้ตั้ง Enter ท้ายรหัส — ปิดท้ายให้เองเมื่อเงียบและยาวพอ
+    if(hwBuf.length >= 8 && hwIsBurst()){ hwCommit(key); }
+    else { hwAutoTimer = null; }
+  }, HW_AUTO_END);
+}, true);
+
+/* --- ผูกสวิตช์ + คืนค่าที่เคยตั้งไว้ --- */
+Object.keys(HW_MODES).forEach(function(key){
+  const cfg = HW_MODES[key];
+  const tgl = document.getElementById(cfg.toggle);
+  const inp = document.getElementById(cfg.input);
+  if(tgl) tgl.addEventListener('change', function(){ hwSetMode(key, tgl.checked); });
+  if(inp){
+    inp.addEventListener('blur', function(){ setTimeout(function(){ hwFocus(key); }, 350); });
+  }
+  let saved = null;
+  try{ saved = localStorage.getItem(cfg.store); }catch(e){}
+  // ค่าเริ่มต้น: คอมพิวเตอร์ (เมาส์/คีย์บอร์ด) เปิดให้อัตโนมัติ, มือถือ/แท็บเล็ตปิดไว้
+  const desktopLike = window.matchMedia && window.matchMedia('(pointer:fine)').matches && !('ontouchstart' in window);
+  hwSetMode(key, saved === null ? desktopLike : saved === '1');
+});
+
+// เปลี่ยนหน้าแล้วให้ช่องรับการยิงกลับมาพร้อมใช้เสมอ
+(function(){
+  const _setView = setView;
+  setView = function(v){
+    _setView(v);
+    setTimeout(function(){ hwFocus('recv'); hwFocus('usage'); }, 60);
+  };
+})();
+document.addEventListener('click', function(){ setTimeout(function(){ hwFocus('recv'); hwFocus('usage'); }, 120); });
+/* ================= จบโมดูลเครื่องยิงบาร์โค้ด ================= */
 
 document.getElementById('btn-receive-save').addEventListener('click', async ()=>{
   const name = document.getElementById('r-name').value.trim();
