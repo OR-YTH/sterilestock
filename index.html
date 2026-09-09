@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Sterile Stock v2026-09-09-hw1</title>
+<title>Sterile Stock v2026-09-09-hw2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/JsBarcode/3.11.5/JsBarcode.all.min.js"></script>
@@ -826,17 +826,73 @@ let html5QrCodeReceive = null;
 function uid(){return 'id-' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);}
 function genCode(){return 'SS-' + Math.random().toString(36).slice(2,8).toUpperCase();}
 function todayStr(){const d=new Date();return d.toISOString().slice(0,10);}
+/* ---------- ตัวแปลงวันที่แบบทนทุกรูปแบบ ----------
+   Google Sheets ส่งวันที่กลับมาได้หลายหน้าตา (Date object, ISO เต็ม, 15/08/2569,
+   ตัวเลข serial) ถ้าไม่แปลงก่อนจะกลายเป็น "NaN undefined NaN" */
+function _isoLocal(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function toIsoDateSafe(v){
+  if(v === null || v === undefined || v === '') return '';
+  if(v instanceof Date) return isNaN(v.getTime()) ? '' : _isoLocal(v);
+  if(typeof v === 'number' && isFinite(v)){
+    if(v > 20000 && v < 80000){                       // serial ของ Sheets/Excel (ฐาน 30 ธ.ค. 1899)
+      const d = new Date(Date.UTC(1899,11,30) + Math.round(v)*86400000);
+      return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0');
+    }
+    if(v > 1e11){ const d = new Date(v); return isNaN(d.getTime()) ? '' : _isoLocal(d); }   // epoch ms
+    return '';
+  }
+  let s = String(v).trim();
+  if(!s) return '';
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(m){
+    let y = +m[1]; if(y > 2400) y -= 543;             // เผลอเก็บเป็น พ.ศ.
+    return y+'-'+String(+m[2]).padStart(2,'0')+'-'+String(+m[3]).padStart(2,'0');
+  }
+  if(/^\d{4}-\d{2}-\d{2}T/.test(s)){                  // ISO เต็มจาก Apps Script
+    const d = new Date(s);
+    if(!isNaN(d.getTime())) return _isoLocal(d);
+  }
+  m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);   // 13/09/2569, 15-08-69
+  if(m){
+    let dd = +m[1], mo = +m[2], y = +m[3];
+    if(y < 100) y += (y > 50 ? 2500 : 2000);          // 69 → 2569 (พ.ศ.) แล้วลบ 543 ทีหลัง
+    if(y > 2400) y -= 543;
+    if(mo >= 1 && mo <= 12 && dd >= 1 && dd <= 31){
+      return y+'-'+String(mo).padStart(2,'0')+'-'+String(dd).padStart(2,'0');
+    }
+  }
+  const d2 = new Date(s);
+  return isNaN(d2.getTime()) ? '' : _isoLocal(d2);
+}
 function fmtDate(s){
-  if(!s) return '-';
-  const d = new Date(s + 'T00:00:00');
+  const iso = toIsoDateSafe(s);
+  if(!iso) return '-';
+  const d = new Date(iso + 'T00:00:00');
+  if(isNaN(d.getTime())) return '-';
   const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   return d.getDate() + ' ' + months[d.getMonth()] + ' ' + (d.getFullYear()+543);
 }
 function daysUntil(dateStr){
-  if(!dateStr) return 9999;
+  const iso = toIsoDateSafe(dateStr);
+  if(!iso) return 9999;
   const today = new Date(todayStr()+'T00:00:00');
-  const target = new Date(dateStr+'T00:00:00');
+  const target = new Date(iso+'T00:00:00');
+  if(isNaN(target.getTime())) return 9999;
   return Math.round((target-today)/86400000);
+}
+/* แปลงวันที่ในข้อมูลที่โหลดมาให้เป็น YYYY-MM-DD ทั้งหมด ก่อนเอาไปแสดง/คำนวณ */
+function normalizeRecordDates(list){
+  if(!Array.isArray(list)) return list;
+  list.forEach(function(r){
+    if(!r || typeof r !== 'object') return;
+    ['expiry','sterileDate','date','usedAt'].forEach(function(f){
+      if(r[f] !== undefined && r[f] !== null && r[f] !== ''){
+        const iso = toIsoDateSafe(r[f]);
+        if(iso) r[f] = iso;
+      }
+    });
+  });
+  return list;
 }
 function statusOf(item){
   const d = daysUntil(item.expiry);
@@ -905,7 +961,7 @@ function jsonpRequest(url, timeoutMs){
   });
 }
 /* ===== เวอร์ชันของไฟล์นี้ — ใช้เช็คว่าเครื่องเปิดไฟล์ตัวใหม่จริงหรือยัง ===== */
-const APP_VERSION = '2026-09-09-hw1';
+const APP_VERSION = '2026-09-09-hw2';
 const APP_VERSION_NOTE = 'ฐานข้อมูลแบบ 1 แถว = 1 รายการ (ต้องใช้คู่กับ Code_v2.gs)';
 
 /* =====================================================================
@@ -972,8 +1028,8 @@ async function loadData(){
   if(!res.ok){
     // อ่านไม่ได้ → แสดงข้อมูลสำรองในเครื่อง แบบอ่านอย่างเดียว
     apiOnline = false;
-    items = localGet('items', []);
-    logs = localGet('usage-logs', []);
+    items = normalizeRecordDates(localGet('items', []));
+    logs = normalizeRecordDates(localGet('usage-logs', []));
     catalog = localGet('catalog', []);
     orDirectory = localGet('or-directory', {operations:[], departments:[]});
     itemShelfMemory = localGet('item-shelf-memory', {});
@@ -983,8 +1039,8 @@ async function loadData(){
   }
   apiOnline = true;
   const d = res.data || {};
-  items = d.items || [];
-  logs = d.logs || [];
+  items = normalizeRecordDates(d.items || []);
+  logs = normalizeRecordDates(d.logs || []);
   catalog = d.catalog || [];
   const st = d.settings || {};
   const savedDir = st['or-directory'] || {operations:[], departments:[]};
@@ -2660,8 +2716,10 @@ const THAI_MONTHS_SHORT = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","�
 const THAI_DOW = ["อา","จ","อ","พ","พฤ","ศ","ส"];
 function toBuddhistYear(y){ return y + 543; }
 function isoToThaiDisplay(iso){
-  if(!iso) return '';
-  const d = new Date(iso + 'T00:00:00');
+  const v = toIsoDateSafe(iso);
+  if(!v) return '';
+  const d = new Date(v + 'T00:00:00');
+  if(isNaN(d.getTime())) return '';
   return `${d.getDate()} ${THAI_MONTHS_FULL[d.getMonth()]} ${toBuddhistYear(d.getFullYear())}`;
 }
 function pad2(n){ return String(n).padStart(2,'0'); }
