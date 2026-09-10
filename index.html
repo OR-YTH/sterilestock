@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Sterile Stock v2026-09-09-hw2</title>
+<title>Sterile Stock v2026-09-10-fast1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/JsBarcode/3.11.5/JsBarcode.all.min.js"></script>
@@ -256,6 +256,20 @@ input,select,textarea{font-family:inherit;}
 .hw-ready-dot{width:7px;height:7px;border-radius:50%;background:#C3D2D9;flex:none;}
 .hw-box.hw-active .hw-ready-dot{background:#1F9D55;box-shadow:0 0 0 3px rgba(31,157,85,.18);animation:hwPulse 1.9s infinite;}
 @keyframes hwPulse{0%,100%{opacity:1;}50%{opacity:.45;}}
+
+/* ---------- OUTBOX (บันทึกเบื้องหลัง) ---------- */
+#outbox-pill{position:fixed;left:14px;bottom:84px;z-index:150;display:none;align-items:center;gap:9px;
+  padding:9px 14px;border-radius:999px;font-size:12.5px;font-weight:600;
+  box-shadow:0 6px 20px -6px rgba(5,46,66,.35);max-width:calc(100vw - 28px);}
+#outbox-pill.show{display:flex;}
+#outbox-pill.saving{background:#0B4F71;color:#fff;}
+#outbox-pill.done{background:#1F9D55;color:#fff;}
+#outbox-pill.stuck{background:#B3261E;color:#fff;}
+#outbox-pill .ob-spin{width:13px;height:13px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:obSpin .8s linear infinite;flex:none;}
+@keyframes obSpin{to{transform:rotate(360deg);}}
+#outbox-pill button{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.5);color:#fff;
+  font:inherit;font-size:11.5px;padding:3px 10px;border-radius:999px;cursor:pointer;flex:none;}
+@media(min-width:981px){ #outbox-pill{bottom:18px;} }
 
 /* ---------- HN HISTORY ---------- */
 .hn-search-row{display:flex;gap:8px;margin:-4px 0 12px;}
@@ -789,6 +803,7 @@ input,select,textarea{font-family:inherit;}
 <div id="print-area"><div class="label-sheet" id="print-sheet"></div></div>
 
 <div class="toast" id="toast"></div>
+<div id="outbox-pill"></div>
 
 <datalist id="cssd-item-names"></datalist>
 <datalist id="operation-suggestions"></datalist>
@@ -961,7 +976,7 @@ function jsonpRequest(url, timeoutMs){
   });
 }
 /* ===== เวอร์ชันของไฟล์นี้ — ใช้เช็คว่าเครื่องเปิดไฟล์ตัวใหม่จริงหรือยัง ===== */
-const APP_VERSION = '2026-09-09-hw2';
+const APP_VERSION = '2026-09-10-fast1';
 const APP_VERSION_NOTE = 'ฐานข้อมูลแบบ 1 แถว = 1 รายการ (ต้องใช้คู่กับ Code_v2.gs)';
 
 /* =====================================================================
@@ -1022,8 +1037,31 @@ function cacheAll(){
 
 let lastRev = -1;
 
+/* แสดงข้อมูลที่เก็บไว้ในเครื่องก่อนทันที ไม่ต้องรอคลาวด์ — เปิดแอปแล้วเห็นของเลย */
+let cacheShown = false;
+function showCachedFirst(){
+  if(cacheShown) return;
+  const cached = localGet('items', null);
+  if(cached === null) return;
+  items = normalizeRecordDates(cached || []);
+  logs = normalizeRecordDates(localGet('usage-logs', []) || []);
+  catalog = localGet('catalog', []) || [];
+  const cd = localGet('or-directory', null);
+  if(cd) orDirectory = cd;
+  itemShelfMemory = localGet('item-shelf-memory', {}) || {};
+  cacheShown = true;
+  renderAll();
+  populateOrSuggestions();
+}
+
 async function loadData(){
   if(!APPS_SCRIPT_URL){ setSyncStatus('unconfigured'); renderAll(); populateOrSuggestions(); return; }
+  showCachedFirst();
+  if(outboxPending()){
+    // ยังมีของค้างส่ง — ห้ามเอาข้อมูลคลาวด์มาทับ ไม่งั้นของที่เพิ่งบันทึกจะหาย
+    drainOutbox();
+    return;
+  }
   const res = await apiCall('loadAll');
   if(!res.ok){
     // อ่านไม่ได้ → แสดงข้อมูลสำรองในเครื่อง แบบอ่านอย่างเดียว
@@ -1060,48 +1098,134 @@ async function loadData(){
   populateOrSuggestions();
 }
 
-/* ----- คำสั่งรายการเดียว ----- */
-async function apiAddItem(item){
-  const r = await apiDo('addItem', {item}, 'รับเข้าคลังไม่สำเร็จ');
-  if(r.ok) cacheAll();
-  return r.ok;
+/* =====================================================================
+   OUTBOX — บันทึกเบื้องหลัง ไม่ต้องยืนรอ Apps Script
+   หน้าจออัปเดตทันที งานถูกต่อคิวลง localStorage แล้วทยอยส่งขึ้นคลาวด์
+   ปลอดภัยเพราะ: คิวอยู่ใน localStorage (ปิดเครื่อง/รีเฟรชไม่หาย),
+   ส่งเรียงลำดับทีละงาน, ถ้าส่งไม่ขึ้นจะเตือนค้างไว้ + ลองใหม่เอง,
+   และ loadData() ห้ามดึงข้อมูลคลาวด์มาทับตราบใดที่คิวยังไม่ว่าง
+   ===================================================================== */
+let outbox = [];
+let outboxDraining = false;
+let outboxDoneTimer = null;
+
+function outboxLoad(){ outbox = localGet('outbox', []) || []; }
+function outboxSave(){ localSet('outbox', outbox); }
+function outboxPending(){ return outbox.length; }
+
+function renderOutboxPill(justFinished){
+  const el = document.getElementById('outbox-pill');
+  if(!el) return;
+  if(outboxDoneTimer){ clearTimeout(outboxDoneTimer); outboxDoneTimer = null; }
+  if(!outbox.length){
+    if(justFinished){
+      el.className = 'show done';
+      el.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>บันทึกขึ้นคลาวด์ครบแล้ว</span>';
+      outboxDoneTimer = setTimeout(()=>{ el.className = ''; }, 2200);
+    }else{
+      el.className = '';
+    }
+    return;
+  }
+  const stuck = outbox[0] && outbox[0].tries >= 2;
+  if(stuck){
+    el.className = 'show stuck';
+    el.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+      + '<span>ยังส่งขึ้นคลาวด์ไม่ได้ ' + outbox.length + ' รายการ — เก็บไว้ในเครื่องแล้ว</span>'
+      + '<button type="button" id="ob-retry">ลองใหม่</button>';
+    const rb = document.getElementById('ob-retry');
+    if(rb) rb.onclick = ()=>{ outbox.forEach(j=>j.tries = 0); outboxSave(); drainOutbox(); };
+  }else{
+    el.className = 'show saving';
+    el.innerHTML = '<span class="ob-spin"></span><span>กำลังบันทึกขึ้นคลาวด์ ' + outbox.length + ' รายการ</span>';
+  }
 }
-async function apiUpdateItem(item){
-  const r = await apiDo('updateItem', {item}, 'บันทึกการแก้ไขไม่สำเร็จ');
-  if(r.ok) cacheAll();
-  return r.ok;
+
+function outboxEnqueue(action, payload, key){
+  outbox.push({oid:'ob-'+uid(), action, payload, key:key||'', tries:0, ts:Date.now()});
+  outboxSave();
+  cacheAll();
+  renderOutboxPill();
+  drainOutbox();
+  return true;
 }
-async function apiDeleteItem(id){
-  const r = await apiDo('deleteItem', {id}, 'ลบรายการไม่สำเร็จ');
-  if(r.ok) cacheAll();
-  return r.ok;
+
+/* ก่อนลองส่งซ้ำ ให้เช็คก่อนว่างานนั้น "ขึ้นไปแล้วจริงหรือยัง"
+   (JSONP อาจส่งถึงเซิร์ฟเวอร์สำเร็จแต่คำตอบหายกลางทาง — ถ้าส่งซ้ำจะได้ข้อมูลซ้ำ) */
+async function outboxAlreadyApplied(job){
+  if(job.action !== 'addItem' && job.action !== 'useCase') return false;
+  const res = await apiCall('loadAll');
+  if(!res.ok || !res.data) return false;
+  if(job.action === 'addItem'){
+    const id = job.payload && job.payload.item && job.payload.item.id;
+    return !!(id && (res.data.items||[]).some(i=>i.id === id));
+  }
+  const ts = job.payload && job.payload.ts;
+  const hn = job.payload && job.payload.hn;
+  return !!(ts && (res.data.logs||[]).some(l=>l.ts === ts && l.hn === hn));
 }
+
+async function drainOutbox(){
+  if(outboxDraining) return;
+  if(!APPS_SCRIPT_URL) return;
+  if(!outbox.length){ renderOutboxPill(); return; }
+  outboxDraining = true;
+  let sentAny = false;
+  try{
+    while(outbox.length){
+      const job = outbox[0];
+      if(job.tries >= 1 && await outboxAlreadyApplied(job)){
+        outbox.shift(); outboxSave(); sentAny = true; renderOutboxPill();
+        continue;                                   // ขึ้นไปแล้ว ไม่ต้องส่งซ้ำ
+      }
+      const res = await apiCall(job.action, job.payload);
+      if(res && res.ok){
+        outbox.shift(); outboxSave(); sentAny = true;
+        if(res.data && typeof res.data.rev !== 'undefined') lastRev = res.data.rev;
+        if(!apiOnline){ apiOnline = true; setSyncStatus('ok'); }
+        renderOutboxPill();
+      }else{
+        job.tries++;
+        outboxSave();
+        apiOnline = false;
+        renderOutboxPill();
+        break;                                      // หยุดไว้ รักษาลำดับงาน
+      }
+    }
+  } finally {
+    outboxDraining = false;
+    if(outbox.length){
+      const wait = Math.min(60000, 2500 * Math.pow(2, Math.min(outbox[0].tries, 4)));
+      setTimeout(drainOutbox, wait);
+    }else{
+      renderOutboxPill(sentAny);
+      setSyncStatus('ok');
+    }
+  }
+}
+
+window.addEventListener('online', ()=>{ if(outbox.length){ outbox.forEach(j=>j.tries=0); outboxSave(); drainOutbox(); } });
+window.addEventListener('beforeunload', (e)=>{
+  if(outbox.length){ e.preventDefault(); e.returnValue = ''; return ''; }
+});
+
+/* ----- คำสั่งรายการเดียว (ต่อคิวแล้วคืนค่าทันที) ----- */
+function apiAddItem(item){ return outboxEnqueue('addItem', {item}); }
+function apiUpdateItem(item){ return outboxEnqueue('updateItem', {item}); }
+function apiDeleteItem(id){ return outboxEnqueue('deleteItem', {id}); }
 /* บันทึกการใช้ 1 เคส — ตัดสต๊อกและลงประวัติที่เซิร์ฟเวอร์ในคราวเดียว */
-async function apiUseCase(caseObj){
-  const r = await apiDo('useCase', caseObj, 'บันทึกการใช้ไม่สำเร็จ');
-  return r.ok;
-}
-async function saveCatalogEntry(entry){
-  const r = await apiDo('setCatalog', {entry}, 'บันทึกรายการมาตรฐานไม่สำเร็จ');
-  if(r.ok) cacheAll();
-  return r.ok;
-}
-async function deleteCatalogEntry(code){
-  const r = await apiDo('deleteCatalog', {code}, 'ลบรายการมาตรฐานไม่สำเร็จ');
-  if(r.ok) cacheAll();
-  return r.ok;
-}
+function apiUseCase(caseObj){ return outboxEnqueue('useCase', caseObj); }
+function saveCatalogEntry(entry){ return outboxEnqueue('setCatalog', {entry}); }
+function deleteCatalogEntry(code){ return outboxEnqueue('deleteCatalog', {code}); }
 async function saveSetting(key, value){
   const r = await apiDo('setSetting', {key, value}, 'บันทึกการตั้งค่าไม่สำเร็จ');
   if(r.ok) cacheAll();
   return r.ok;
 }
 /* เพิ่มชื่อการผ่าตัด/แผนกใหม่ทีละรายการ (ส่งขึ้นไปแค่คำเดียว) */
-async function addDirEntry(kind, value){
+function addDirEntry(kind, value){
   if(!value) return true;
-  const r = await apiDo('addDirEntry', {kind, value}, 'บันทึกชื่อใหม่ไม่สำเร็จ');
-  if(r.ok) cacheAll();
-  return r.ok;
+  return outboxEnqueue('addDirEntry', {kind, value});
 }
 
 let appUnlocked = false;
@@ -1111,6 +1235,7 @@ setInterval(async ()=>{
   if(!appUnlocked) return;
   if(pollInFlight) return;
   if(document.querySelector('.overlay.active')) return;   // ไม่ขัดจังหวะตอนเปิดหน้าต่าง
+  if(outboxPending()){ drainOutbox(); return; }           // มีของค้างส่ง → ส่งของก่อน อย่าเพิ่งดึงมาทับ
   pollInFlight = true;
   try{
     const r = await apiCall('rev');                       // เบามาก แค่ตัวเลขเดียว
@@ -2500,8 +2625,9 @@ document.getElementById('btn-receive-save').addEventListener('click', async ()=>
   saveBtn.disabled = false;
   saveBtn.innerHTML = saveBtnHtml;
 
-  if(!savedOk){ return; }              // ไม่ขึ้นฐานข้อมูล = ไม่เพิ่มในจอ จะได้ไม่หลอกตา
+  if(!savedOk){ return; }
   items.push(newItem);
+  cacheAll();                          // เก็บลงเครื่องทันที ปิดหน้าจอตอนนี้ก็ไม่หาย
   renderAll();
 
   if(document.getElementById('r-save-catalog').checked && lot){
@@ -2873,7 +2999,10 @@ function unlockApp(){
   const vStrip = document.getElementById('version-strip-text');
   if(vStrip) vStrip.textContent = 'Sterile Stock ' + APP_VERSION;
   console.log('[SterileStock] version', APP_VERSION, '—', APP_VERSION_NOTE);
-  loadData();
+  outboxLoad();
+  renderOutboxPill();
+  showCachedFirst();          // เห็นข้อมูลทันทีจากที่เก็บไว้ในเครื่อง
+  loadData();                 // แล้วค่อยอัปเดตจากคลาวด์เบื้องหลัง
 }
 async function getStoredPin(){
   const res = await apiCall('loadAll');
@@ -2882,14 +3011,52 @@ async function getStoredPin(){
   }
   return DEFAULT_PIN;
 }
+/* เก็บ "ลายนิ้วมือ" ของรหัสผ่านไว้ในเครื่อง (ไม่ได้เก็บตัวรหัส) เพื่อให้ล็อกอินได้ทันที
+   แล้วค่อยตรวจกับเซิร์ฟเวอร์เบื้องหลัง ถ้ารหัสถูกเปลี่ยนจากเครื่องอื่นจะเด้งออกให้ */
+async function pinFingerprint(pin){
+  try{
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('sterile::' + pin));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){ return null; }
+}
+async function verifyPinInBackground(pin){
+  const serverPin = await getStoredPin();
+  if(pin === serverPin){
+    const fp = await pinFingerprint(pin);
+    if(fp){ try{ localStorage.setItem('sterile-pin-fp', fp); }catch(e){} }
+    return;
+  }
+  try{ localStorage.removeItem('sterile-pin-fp'); localStorage.removeItem('sterile-unlocked'); }catch(e){}
+  if(!outboxPending()){
+    alert('รหัสผ่านถูกเปลี่ยนจากอุปกรณ์อื่น กรุณาเข้าสู่ระบบใหม่');
+    location.reload();
+  }
+}
 async function tryLogin(){
   const input = document.getElementById('login-pin');
   const errEl = document.getElementById('login-error');
   const pin = input.value.trim();
   if(!pin){ errEl.textContent = 'กรุณากรอกรหัสผ่าน'; return; }
   errEl.textContent = 'กำลังตรวจสอบ...';
+
+  // ทางลัด: ถ้ารหัสตรงกับที่เคยเข้าสำเร็จบนเครื่องนี้ ให้เข้าได้เลย ไม่ต้องรอเซิร์ฟเวอร์
+  let savedFp = null;
+  try{ savedFp = localStorage.getItem('sterile-pin-fp'); }catch(e){}
+  if(savedFp){
+    const fp = await pinFingerprint(pin);
+    if(fp && fp === savedFp){
+      try{ localStorage.setItem('sterile-unlocked', 'true'); }catch(e){}
+      errEl.textContent = '';
+      unlockApp();
+      verifyPinInBackground(pin);
+      return;
+    }
+  }
+
   const correctPin = await getStoredPin();
   if(pin === correctPin){
+    const fp = await pinFingerprint(pin);
+    if(fp){ try{ localStorage.setItem('sterile-pin-fp', fp); }catch(e){} }
     try{ localStorage.setItem('sterile-unlocked', 'true'); }catch(e){}
     errEl.textContent = '';
     unlockApp();
@@ -2916,6 +3083,8 @@ document.getElementById('btn-change-pin').addEventListener('click', async ()=>{
   const confirmNext = prompt('กรอกรหัสผ่านใหม่อีกครั้งเพื่อยืนยัน:');
   if(confirmNext !== next){ alert('รหัสผ่านที่กรอกไม่ตรงกัน กรุณาลองใหม่'); return; }
   if(!await saveSetting('app-pin', next.trim())) return;
+  const fp = await pinFingerprint(next.trim());
+  if(fp){ try{ localStorage.setItem('sterile-pin-fp', fp); }catch(e){} }
   showToast('เปลี่ยนรหัสผ่านเรียบร้อยแล้ว', true);
 });
 
