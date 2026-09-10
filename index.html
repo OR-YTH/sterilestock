@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Sterile Stock v2026-09-10-fast1</title>
+<title>Sterile Stock v2026-09-10-rpt1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/JsBarcode/3.11.5/JsBarcode.all.min.js"></script>
@@ -693,16 +693,31 @@ input,select,textarea{font-family:inherit;}
             ดาวน์โหลด CSV
           </button>
         </div>
-        <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:26px;" id="report-stat-grid">
-          <div class="stat-card blue"><div class="n" id="report-total-count">0</div><div class="l">ครั้งที่ใช้งานทั้งหมด</div></div>
-          <div class="stat-card ok"><div class="n" id="report-item-types">0</div><div class="l">ชนิดอุปกรณ์ที่ถูกใช้</div></div>
-          <div class="stat-card soon"><div class="n" id="report-top-item">-</div><div class="l">ใช้บ่อยที่สุด</div></div>
+        <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px;" id="report-stat-grid">
+          <div class="stat-card blue"><div class="n" id="report-total-count">0</div><div class="l">ใช้กับผู้ป่วย (ชิ้น)</div></div>
+          <div class="stat-card soon"><div class="n" id="report-resterile">0</div><div class="l">ส่ง Re-sterile (ชิ้น)</div></div>
+          <div class="stat-card expired"><div class="n" id="report-expired">0</div><div class="l">หมดอายุ/ตัดออก (ชิ้น)</div></div>
+          <div class="stat-card ok"><div class="n" id="report-received">0</div><div class="l">รับเข้าคลัง (ชิ้น)</div></div>
         </div>
-        <h3 class="section-title">สรุปการใช้งานแยกตามอุปกรณ์</h3>
-        <table class="std-table">
-          <thead><tr><th>ชื่อชุด/อุปกรณ์</th><th>จำนวนครั้งที่ใช้</th></tr></thead>
-          <tbody id="report-table-body"></tbody>
-        </table>
+        <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:26px;">
+          <div class="stat-card"><div class="n" id="report-item-types">0</div><div class="l">ชนิดอุปกรณ์ที่เคลื่อนไหว</div></div>
+          <div class="stat-card"><div class="n" id="report-top-item">-</div><div class="l">ใช้บ่อยที่สุด</div></div>
+        </div>
+        <h3 class="section-title">สรุปแยกตามอุปกรณ์</h3>
+        <div style="overflow-x:auto;">
+          <table class="std-table">
+            <thead><tr><th>ชื่อชุด/อุปกรณ์</th><th>ใช้กับผู้ป่วย</th><th>Re-sterile</th><th>หมดอายุ/ตัดออก</th><th>รวม</th></tr></thead>
+            <tbody id="report-table-body"></tbody>
+          </table>
+        </div>
+        <h3 class="section-title" style="margin-top:26px;">รายการที่ส่ง Re-sterile ในเดือนนี้</h3>
+        <p style="font-size:11.5px;color:var(--steel);margin:-6px 0 10px;">ใช้ตรวจสอบว่าของที่ส่งจ่ายกลางไปแล้ว กลับมารับเข้าคลังครบหรือยัง</p>
+        <div style="overflow-x:auto;">
+          <table class="std-table">
+            <thead><tr><th>วันที่ส่ง</th><th>ชื่อชุด/อุปกรณ์</th><th>Lot เดิม</th><th>จำนวน</th><th>เหตุผล</th></tr></thead>
+            <tbody id="report-resterile-body"></tbody>
+          </table>
+        </div>
       </div>
 
     </div>
@@ -773,6 +788,49 @@ input,select,textarea{font-family:inherit;}
     <div class="modal-actions">
       <button class="btn" id="btn-cancel-quickuse">ยกเลิก</button>
       <button class="btn btn-primary" id="btn-confirm-quickuse">ยืนยันว่าใช้แล้ว</button>
+    </div>
+  </div>
+</div>
+
+<!-- SEND OUT / RE-STERILE MODAL -->
+<div class="overlay" id="sendout-overlay">
+  <div class="modal" style="max-width:430px;">
+    <h2 id="sendout-title">ตัดออกจากคลัง</h2>
+    <div id="sendout-item" style="background:var(--sterile-white);border:1px solid var(--line-strong);border-radius:11px;padding:11px 13px;font-size:12.5px;line-height:1.7;margin-bottom:14px;"></div>
+    <div class="field">
+      <label>เหตุผล</label>
+      <div id="sendout-kinds" style="display:flex;flex-direction:column;gap:7px;">
+        <label class="check-row" style="border-bottom:none;padding:7px 0;">
+          <input type="radio" name="sendout-kind" value="resterile" checked>
+          <span><b>ส่งทำปลอดเชื้อใหม่ (Re-sterile)</b><br><span style="font-size:11px;color:var(--steel);">ส่งกลับจ่ายกลาง ของยังใช้ได้ รอรับเข้าใหม่</span></span>
+        </label>
+        <label class="check-row" style="border-bottom:none;padding:7px 0;">
+          <input type="radio" name="sendout-kind" value="expired">
+          <span><b>หมดอายุ / เสื่อมสภาพ</b><br><span style="font-size:11px;color:var(--steel);">ตัดออกถาวร นับเข้ารายงานของหมดอายุ</span></span>
+        </label>
+        <label class="check-row" style="border-bottom:none;padding:7px 0;">
+          <input type="radio" name="sendout-kind" value="remove">
+          <span><b>ลบรายการ (บันทึกผิด)</b><br><span style="font-size:11px;color:var(--steel);">ลบทิ้งทั้งแถว ไม่นับเข้ารายงานใดๆ</span></span>
+        </label>
+      </div>
+    </div>
+    <div class="field-row" id="sendout-qty-row">
+      <div class="field"><label>จำนวน (ชิ้น)</label><input id="sendout-qty" type="number" min="1" value="1"></div>
+      <div class="field"><label>สาเหตุย่อย</label>
+        <select id="sendout-reason">
+          <option>ใกล้หมดอายุ</option>
+          <option>ซองชำรุด / เปียกชื้น</option>
+          <option>เปิดซองแล้วไม่ได้ใช้</option>
+          <option>Indicator ไม่เปลี่ยนสี</option>
+          <option>ตกพื้น / ปนเปื้อน</option>
+          <option>อื่นๆ</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" id="sendout-note-row"><label>หมายเหตุ (ไม่บังคับ)</label><input id="sendout-note" placeholder="เช่น ส่งรอบเช้า ผู้ส่ง..."></div>
+    <div class="modal-actions">
+      <button class="btn" id="btn-cancel-sendout">ยกเลิก</button>
+      <button class="btn btn-primary" id="btn-confirm-sendout">ยืนยัน</button>
     </div>
   </div>
 </div>
@@ -976,7 +1034,7 @@ function jsonpRequest(url, timeoutMs){
   });
 }
 /* ===== เวอร์ชันของไฟล์นี้ — ใช้เช็คว่าเครื่องเปิดไฟล์ตัวใหม่จริงหรือยัง ===== */
-const APP_VERSION = '2026-09-10-fast1';
+const APP_VERSION = '2026-09-10-rpt1';
 const APP_VERSION_NOTE = 'ฐานข้อมูลแบบ 1 แถว = 1 รายการ (ต้องใช้คู่กับ Code_v2.gs)';
 
 /* =====================================================================
@@ -1307,7 +1365,8 @@ function trayCard(item){
         <button class="icon-btn" title="แก้ไข" data-act="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20 h9"/><path d="M16.5 3.5 a2.12 2.12 0 0 1 3 3 L7 19 l-4 1 1-4 Z"/></svg></button>
         <button class="icon-btn" title="ดูรายละเอียด/บาร์โค้ด" data-act="view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12 S5 5 12 5 s11 7 11 7 -4 7-11 7 -11-7-11-7 Z"/><circle cx="12" cy="12" r="3"/></svg></button>
         <button class="icon-btn" title="ใช้ 1 ชุด" data-act="use" ${item.qty<=0?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>
-        <button class="icon-btn danger" title="ลบ" data-act="delete" style="margin-left:auto;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6 v14 a2 2 0 0 1-2 2 H7 a2 2 0 0 1-2-2 V6 m3 0 V4 a2 2 0 0 1 2-2 h4 a2 2 0 0 1 2 2 v2"/></svg></button>
+        <button class="icon-btn" title="ส่งทำปลอดเชื้อใหม่ (Re-sterile)" data-act="resterile" ${item.qty<=0?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
+        <button class="icon-btn danger" title="ตัดออกจากคลัง" data-act="delete" style="margin-left:auto;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6 v14 a2 2 0 0 1-2 2 H7 a2 2 0 0 1-2-2 V6 m3 0 V4 a2 2 0 0 1 2-2 h4 a2 2 0 0 1 2 2 v2"/></svg></button>
       </div>
     </div>
   </div>`;
@@ -1441,7 +1500,8 @@ document.getElementById('app').addEventListener('click', e=>{
   const action = act.dataset.act;
   if(action==='edit') openEditModal(item);
   if(action==='view') openDetailModal(item);
-  if(action==='delete') deleteItem(item);
+  if(action==='delete') openSendOutModal(item);
+  if(action==='resterile') openSendOutModal(item, 'resterile');
   if(action==='use') openQuickUseModal(item);
 });
 
@@ -1451,6 +1511,108 @@ async function deleteItem(item){
   items = items.filter(i=>i.id!==item.id);
   renderAll();
   showToast('ลบรายการแล้ว', true);
+}
+
+/* =====================================================================
+   ตัดของออกจากคลัง — Re-sterile / หมดอายุ / ลบรายการ
+   เก็บเป็น log เหมือนการใช้งาน แต่แยกประเภทด้วยชื่อ "การผ่าตัด"
+   (ใช้ช่องที่ฐานข้อมูลเก็บอยู่แล้ว จึงไม่ต้องแก้ Apps Script)
+   ===================================================================== */
+const OUT_KINDS = {
+  resterile: { op:'ส่งทำปลอดเชื้อใหม่ (Re-sterile)', dept:'หน่วยจ่ายกลาง', short:'Re-sterile' },
+  expired:   { op:'ตัดออกจากคลัง: หมดอายุ/เสื่อมสภาพ', dept:'ห้องผ่าตัด', short:'หมดอายุ/ตัดออก' }
+};
+function logKind(l){
+  const op = String((l && l.operation) || '');
+  if(op.indexOf('ส่งทำปลอดเชื้อใหม่') === 0) return 'resterile';
+  if(op.indexOf('ตัดออกจากคลัง') === 0) return 'expired';
+  return 'usage';
+}
+
+let sendOutItemId = null;
+function openSendOutModal(item, defaultKind){
+  sendOutItemId = item.id;
+  const d = daysUntil(item.expiry);
+  const kind = defaultKind || (d < 0 ? 'expired' : 'resterile');
+  document.getElementById('sendout-item').innerHTML =
+    '<b>' + escapeHtml(item.name) + '</b><br>' +
+    '<span class="mono" style="font-size:11.5px;">' + escapeHtml(item.code) + ' · Lot ' + escapeHtml(item.lot||'-') + '</span><br>' +
+    'หมดอายุ ' + fmtDate(item.expiry) + ' · ' + (d < 0 ? ('<b style="color:var(--expired);">เกินมา ' + Math.abs(d) + ' วัน</b>') : ('เหลืออีก ' + d + ' วัน')) +
+    ' · คงเหลือ ' + item.qty + ' ชิ้น';
+  document.querySelectorAll('input[name="sendout-kind"]').forEach(r=>{ r.checked = (r.value === kind); });
+  const qtyEl = document.getElementById('sendout-qty');
+  qtyEl.max = Math.max(1, item.qty);
+  qtyEl.value = 1;
+  document.getElementById('sendout-note').value = '';
+  document.getElementById('sendout-reason').value = (d < 0) ? 'ใกล้หมดอายุ' : 'ใกล้หมดอายุ';
+  syncSendOutForm();
+  document.getElementById('sendout-overlay').classList.add('active');
+}
+function currentSendOutKind(){
+  const r = document.querySelector('input[name="sendout-kind"]:checked');
+  return r ? r.value : 'resterile';
+}
+function syncSendOutForm(){
+  const kind = currentSendOutKind();
+  const isRemove = (kind === 'remove');
+  document.getElementById('sendout-qty-row').style.display = isRemove ? 'none' : '';
+  document.getElementById('sendout-note-row').style.display = isRemove ? 'none' : '';
+  document.getElementById('sendout-title').textContent =
+    kind === 'resterile' ? 'ส่งทำปลอดเชื้อใหม่ (Re-sterile)'
+    : kind === 'expired' ? 'ตัดออก: หมดอายุ/เสื่อมสภาพ'
+    : 'ลบรายการออกจากคลัง';
+  document.getElementById('btn-confirm-sendout').textContent = isRemove ? 'ลบรายการ' : 'ยืนยัน';
+}
+document.getElementById('sendout-kinds').addEventListener('change', syncSendOutForm);
+document.getElementById('btn-cancel-sendout').addEventListener('click', ()=>document.getElementById('sendout-overlay').classList.remove('active'));
+document.getElementById('sendout-overlay').addEventListener('click', e=>{ if(e.target.id==='sendout-overlay') e.currentTarget.classList.remove('active'); });
+document.getElementById('btn-confirm-sendout').addEventListener('click', async ()=>{
+  const item = items.find(i=>i.id===sendOutItemId);
+  if(!item){ document.getElementById('sendout-overlay').classList.remove('active'); return; }
+  const kind = currentSendOutKind();
+
+  if(kind === 'remove'){
+    document.getElementById('sendout-overlay').classList.remove('active');
+    if(!confirm('ลบ "' + item.name + '" ทั้งแถวออกจากคลัง? (ไม่ถูกนับในรายงาน)')) return;
+    if(!await apiDeleteItem(item.id)) return;
+    items = items.filter(i=>i.id!==item.id);
+    cacheAll(); renderAll();
+    showToast('ลบรายการแล้ว', true);
+    return;
+  }
+
+  let count = parseInt(document.getElementById('sendout-qty').value) || 1;
+  count = Math.max(1, Math.min(item.qty, count));
+  if(item.qty <= 0){ showToast('รายการนี้ไม่มีของคงเหลือแล้ว'); return; }
+  const reason = document.getElementById('sendout-reason').value;
+  const note = document.getElementById('sendout-note').value.trim();
+  document.getElementById('sendout-overlay').classList.remove('active');
+  sendOutItem(item, kind, count, reason, note);
+});
+
+function sendOutItem(item, kind, count, reason, note){
+  const cfg = OUT_KINDS[kind];
+  if(!cfg) return;
+  const ts = Date.now();
+  const fullNote = reason + (note ? (' — ' + note) : '');
+  const pass = standardPass(item);
+
+  apiUseCase({                                   // ตัดสต๊อก + ลงประวัติที่เซิร์ฟเวอร์ (เข้าคิวส่ง ไม่ต้องรอ)
+    hn:'—', operation: cfg.op, department: cfg.dept, notes: fullNote, ts,
+    items:[{itemId:item.id, count, pass}]
+  });
+
+  item.qty -= count;
+  for(let n=0; n<count; n++){
+    logs.unshift({id:'lg-'+uid(), itemId:item.id, name:item.name, code:item.code, lot:item.lot||'',
+                  sterileDate:item.sterileDate||'', expiry:item.expiry||'', ts,
+                  source:kind, hn:'—', operation:cfg.op, department:cfg.dept, notes:fullNote, pass});
+  }
+  cacheAll();
+  renderAll();
+  showToast(kind === 'resterile'
+    ? `ส่ง Re-sterile: ${item.name} ${count} ชิ้น — บันทึกไว้ในรายงานแล้ว`
+    : `ตัดออก (หมดอายุ): ${item.name} ${count} ชิ้น`, true);
 }
 let quickUseItemId = null;
 function openQuickUseModal(item){
@@ -2726,41 +2888,101 @@ function currentMonthValue(){
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
 }
+function monthOf(ts){
+  const d = new Date(ts);
+  if(isNaN(d.getTime())) return '';
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
 function getReportData(monthValue){
-  const filtered = logs.filter(l=>{
-    const d = new Date(l.ts);
-    const mv = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-    return mv === monthValue;
-  });
+  const filtered = logs.filter(l=>monthOf(l.ts) === monthValue);
+
+  const totals = {usage:0, resterile:0, expired:0};
   const byName = {};
   filtered.forEach(l=>{
+    const k = logKind(l);
+    totals[k]++;
     const key = l.name || '(ไม่ทราบชื่อ)';
-    byName[key] = (byName[key]||0) + 1;
+    byName[key] = byName[key] || {usage:0, resterile:0, expired:0};
+    byName[key][k]++;
   });
-  const rows = Object.entries(byName).map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count);
-  return { totalCount: filtered.length, itemTypes: rows.length, topItem: rows.length ? rows[0].name : '-', rows };
+  const rows = Object.entries(byName)
+    .map(([name,c])=>({name, usage:c.usage, resterile:c.resterile, expired:c.expired, total:c.usage+c.resterile+c.expired}))
+    .sort((a,b)=>b.total-a.total);
+
+  // จำนวนที่รับเข้าคลังในเดือนนั้น = ยอดคงเหลือ + จำนวนที่ถูกตัดออกไปแล้วของล็อตนั้น
+  let received = 0;
+  items.forEach(i=>{
+    if(monthOf(i.createdAt) !== monthValue) return;
+    const moved = logs.filter(l=>l.itemId === i.id).length;
+    received += (parseInt(i.qty)||0) + moved;
+  });
+
+  // รายการที่ส่ง Re-sterile (รวมชิ้นที่ส่งพร้อมกันเป็นแถวเดียว)
+  const rsMap = new Map();
+  filtered.filter(l=>logKind(l) === 'resterile').forEach(l=>{
+    const key = l.ts + '|' + (l.itemId||l.code||'');
+    if(!rsMap.has(key)) rsMap.set(key, {ts:l.ts, name:l.name||'-', lot:l.lot||'-', notes:l.notes||'-', count:0});
+    rsMap.get(key).count++;
+  });
+  const resterileRows = Array.from(rsMap.values()).sort((a,b)=>b.ts-a.ts);
+
+  const topUsed = rows.filter(r=>r.usage>0).sort((a,b)=>b.usage-a.usage)[0];
+  return {
+    totalCount: totals.usage, resterileCount: totals.resterile, expiredCount: totals.expired,
+    received, itemTypes: rows.length, topItem: topUsed ? topUsed.name : '-',
+    rows, resterileRows
+  };
 }
 function renderReportsView(){
   const monthInput = document.getElementById('report-month');
   if(!monthInput.value){ monthInput.value = currentMonthValue(); monthInput.dispatchEvent(new Event('change')); }
   const data = getReportData(monthInput.value);
   document.getElementById('report-total-count').textContent = data.totalCount;
+  document.getElementById('report-resterile').textContent = data.resterileCount;
+  document.getElementById('report-expired').textContent = data.expiredCount;
+  document.getElementById('report-received').textContent = data.received;
   document.getElementById('report-item-types').textContent = data.itemTypes;
   document.getElementById('report-top-item').textContent = data.topItem;
   document.getElementById('report-top-item').style.fontSize = data.topItem.length > 10 ? '16px' : '28px';
+
   const body = document.getElementById('report-table-body');
   body.innerHTML = data.rows.length
-    ? data.rows.map(r=>`<tr><td>${escapeHtml(r.name)}</td><td class="mono">${r.count}</td></tr>`).join('')
-    : `<tr><td colspan="2" style="text-align:center;color:var(--steel);padding:30px;">ไม่มีการใช้งานในเดือนนี้</td></tr>`;
+    ? data.rows.map(r=>`<tr><td>${escapeHtml(r.name)}</td><td class="mono">${r.usage}</td><td class="mono">${r.resterile||'-'}</td><td class="mono">${r.expired||'-'}</td><td class="mono"><b>${r.total}</b></td></tr>`).join('')
+    : `<tr><td colspan="5" style="text-align:center;color:var(--steel);padding:30px;">ไม่มีความเคลื่อนไหวในเดือนนี้</td></tr>`;
+
+  const rsBody = document.getElementById('report-resterile-body');
+  if(rsBody){
+    rsBody.innerHTML = data.resterileRows.length
+      ? data.resterileRows.map(r=>`<tr><td>${fmtDate(monthDayIso(r.ts))}</td><td>${escapeHtml(r.name)}</td><td class="mono">${escapeHtml(r.lot)}</td><td class="mono">${r.count}</td><td style="font-size:12px;">${escapeHtml(r.notes)}</td></tr>`).join('')
+      : `<tr><td colspan="5" style="text-align:center;color:var(--steel);padding:22px;">เดือนนี้ยังไม่มีการส่ง Re-sterile</td></tr>`;
+  }
+}
+function monthDayIso(ts){
+  const d = new Date(ts);
+  if(isNaN(d.getTime())) return '';
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 document.getElementById('report-month').addEventListener('change', renderReportsView);
 document.getElementById('btn-export-report').addEventListener('click', ()=>{
   const monthInput = document.getElementById('report-month');
   const monthValue = monthInput.value || currentMonthValue();
   const data = getReportData(monthValue);
-  let csv = '\uFEFFชื่อชุด/อุปกรณ์,จำนวนครั้งที่ใช้\n';
-  data.rows.forEach(r=>{ csv += `"${r.name.replace(/"/g,'""')}",${r.count}\n`; });
-  csv += `\nรวมทั้งหมด,${data.totalCount}\n`;
+  const q = s => '"' + String(s==null?'':s).replace(/"/g,'""') + '"';
+  let csv = '\uFEFFรายงานคลังเครื่องมือปลอดเชื้อ ประจำเดือน,' + q(monthValue) + '\n\n';
+  csv += 'สรุปรวม\n';
+  csv += 'ใช้กับผู้ป่วย (ชิ้น),' + data.totalCount + '\n';
+  csv += 'ส่ง Re-sterile (ชิ้น),' + data.resterileCount + '\n';
+  csv += 'หมดอายุ/ตัดออก (ชิ้น),' + data.expiredCount + '\n';
+  csv += 'รับเข้าคลัง (ชิ้น),' + data.received + '\n';
+  csv += 'ชนิดอุปกรณ์ที่เคลื่อนไหว,' + data.itemTypes + '\n';
+  csv += 'ใช้บ่อยที่สุด,' + q(data.topItem) + '\n\n';
+  csv += 'สรุปแยกตามอุปกรณ์\n';
+  csv += 'ชื่อชุด/อุปกรณ์,ใช้กับผู้ป่วย,Re-sterile,หมดอายุ/ตัดออก,รวม\n';
+  data.rows.forEach(r=>{ csv += q(r.name) + ',' + r.usage + ',' + r.resterile + ',' + r.expired + ',' + r.total + '\n'; });
+  csv += 'รวมทั้งหมด,' + data.totalCount + ',' + data.resterileCount + ',' + data.expiredCount + ',' + (data.totalCount+data.resterileCount+data.expiredCount) + '\n\n';
+  csv += 'รายการที่ส่ง Re-sterile\n';
+  csv += 'วันที่ส่ง,ชื่อชุด/อุปกรณ์,Lot เดิม,จำนวน,เหตุผล\n';
+  data.resterileRows.forEach(r=>{ csv += q(fmtDate(monthDayIso(r.ts))) + ',' + q(r.name) + ',' + q(r.lot) + ',' + r.count + ',' + q(r.notes) + '\n'; });
   const blob = new Blob([csv], {type:'text/csv'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
