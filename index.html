@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Sterile Stock v2026-09-10-rpt1</title>
+<title>Sterile Stock v2026-09-15-fix1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/JsBarcode/3.11.5/JsBarcode.all.min.js"></script>
@@ -183,6 +183,7 @@ input,select,textarea{font-family:inherit;}
   z-index:50;overflow-y:auto;padding:40px 16px;
 }
 .overlay.active{display:flex;}
+#sendout-overlay,#quickuse-overlay,#item-overlay{z-index:70;}   /* เปิดซ้อนจากในหน้าต่างรายการล็อตได้ */
 .modal{background:#fff;border-radius:18px;width:100%;max-width:520px;padding:26px;margin-top:0;box-shadow:var(--shadow-pop);}
 .modal h2{font-size:17px;margin:0 0 18px;font-weight:700;letter-spacing:-0.2px;}
 .field{margin-bottom:14px;}
@@ -1034,7 +1035,7 @@ function jsonpRequest(url, timeoutMs){
   });
 }
 /* ===== เวอร์ชันของไฟล์นี้ — ใช้เช็คว่าเครื่องเปิดไฟล์ตัวใหม่จริงหรือยัง ===== */
-const APP_VERSION = '2026-09-10-rpt1';
+const APP_VERSION = '2026-09-15-fix1';
 const APP_VERSION_NOTE = 'ฐานข้อมูลแบบ 1 แถว = 1 รายการ (ต้องใช้คู่กับ Code_v2.gs)';
 
 /* =====================================================================
@@ -1449,7 +1450,15 @@ function renderInventory(){
     ? names.map(n=>groupCard(n, groups[n])).join('')
     : emptyState('ไม่พบรายการ','ลองเปลี่ยนตัวกรองหรือคำค้นหา');
 }
+let groupModalName = null;
+function closeGroupModal(){
+  const ov = document.getElementById('detail-overlay');
+  if(ov && ov.classList.contains('active') && document.getElementById('group-lot-list')){
+    ov.classList.remove('active');
+  }
+}
 function openGroupModal(name){
+  groupModalName = name;
   const q = document.getElementById('global-search').value.trim().toLowerCase();
   const groupItems = items.filter(i=>i.name===name && itemMatchesFilter(i,q))
     .sort((a,b)=>daysUntil(a.expiry)-daysUntil(b.expiry)); // FEFO inside group
@@ -1485,7 +1494,7 @@ document.getElementById('view-dashboard').addEventListener('click', e=>{
 });
 
 /* ---------- CARD ACTIONS ---------- */
-document.getElementById('app').addEventListener('click', e=>{
+document.addEventListener('click', e=>{
   // group card (inventory grouped by name) -> open lot list
   const groupBtn = e.target.closest('[data-group-open]');
   if(groupBtn){ openGroupModal(groupBtn.dataset.groupOpen); return; }
@@ -1498,11 +1507,11 @@ document.getElementById('app').addEventListener('click', e=>{
   const act = e.target.closest('[data-act]');
   if(!act){ openDetailModal(item); return; }
   const action = act.dataset.act;
-  if(action==='edit') openEditModal(item);
+  if(action==='edit'){ closeGroupModal(); openEditModal(item); }
   if(action==='view') openDetailModal(item);
-  if(action==='delete') openSendOutModal(item);
-  if(action==='resterile') openSendOutModal(item, 'resterile');
-  if(action==='use') openQuickUseModal(item);
+  if(action==='delete'){ closeGroupModal(); openSendOutModal(item); }
+  if(action==='resterile'){ closeGroupModal(); openSendOutModal(item, 'resterile'); }
+  if(action==='use'){ closeGroupModal(); openQuickUseModal(item); }
 });
 
 async function deleteItem(item){
@@ -1776,9 +1785,11 @@ function openDetailModal(item){
       <div id="detail-qr"></div>
       <div id="detail-barcode"></div>
     </div>
-    <div class="modal-actions">
+    <div class="modal-actions" style="flex-wrap:wrap;">
       <button class="btn" id="btn-close-detail">ปิด</button>
-      <button class="btn btn-outline-blue" id="btn-goto-print">ไปหน้าพิมพ์สติกเกอร์</button>
+      <button class="btn" id="btn-edit-from-detail">แก้ไข</button>
+      <button class="btn btn-outline-blue" id="btn-goto-print">พิมพ์สติกเกอร์</button>
+      <button class="btn btn-outline-blue" id="btn-resterile-from-detail" ${item.qty<=0?'disabled':''}>ส่ง Re-sterile</button>
       <button class="btn btn-primary" id="btn-use-from-detail" ${item.qty<=0?'disabled':''}>บันทึกว่าใช้แล้ว 1 ชุด</button>
     </div>
   `;
@@ -1799,6 +1810,8 @@ function openDetailModal(item){
   document.getElementById('btn-close-detail').onclick=()=>document.getElementById('detail-overlay').classList.remove('active');
   document.getElementById('btn-use-from-detail').onclick=()=>{ document.getElementById('detail-overlay').classList.remove('active'); openQuickUseModal(item); };
   document.getElementById('btn-goto-print').onclick=()=>{ document.getElementById('detail-overlay').classList.remove('active'); selectedForPrint = new Set([item.id]); setView('print'); };
+  document.getElementById('btn-edit-from-detail').onclick=()=>{ document.getElementById('detail-overlay').classList.remove('active'); openEditModal(item); };
+  document.getElementById('btn-resterile-from-detail').onclick=()=>{ document.getElementById('detail-overlay').classList.remove('active'); openSendOutModal(item, 'resterile'); };
 }
 document.getElementById('detail-overlay').addEventListener('click', e=>{ if(e.target.id==='detail-overlay') e.currentTarget.classList.remove('active'); });
 
