@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Sterile Stock v2026-09-18-hist1</title>
+<title>Sterile Stock v2026-09-21-pt1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/JsBarcode/3.11.5/JsBarcode.all.min.js"></script>
@@ -272,6 +272,51 @@ input,select,textarea{font-family:inherit;}
   font:inherit;font-size:11.5px;padding:3px 10px;border-radius:999px;cursor:pointer;flex:none;}
 @media(min-width:981px){ #outbox-pill{bottom:18px;} }
 
+/* ---------- PATIENT USAGE MODULE ---------- */
+.pt-stats{grid-template-columns:repeat(5,1fr);margin-bottom:22px;}
+.rp-stats{grid-template-columns:repeat(4,1fr);margin-bottom:14px;}
+.rp-stats2{grid-template-columns:repeat(2,1fr);margin-bottom:26px;}
+@media(max-width:1200px){ .pt-stats{grid-template-columns:repeat(3,1fr);} }
+@media(max-width:980px){
+  .pt-stats,.rp-stats{grid-template-columns:repeat(2,1fr);}
+  .pt-stats .n,.rp-stats .n{font-size:24px;}
+  .pt-toolbar{gap:8px;}
+  .pt-toolbar > div[style*="flex:1"]{display:none;}
+  #pt-search{flex:1 1 100%;min-width:0 !important;}
+}
+.pt-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+.pt-modes{display:flex;gap:6px;background:var(--sterile-white);border:1px solid var(--line-strong);border-radius:11px;padding:4px;}
+.pt-modes button{border:none;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--steel);padding:7px 16px;border-radius:8px;cursor:pointer;transition:background .15s,color .15s;}
+.pt-modes button.active{background:var(--scrub-green);color:#fff;}
+.pt-stepper{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line-strong);border-radius:11px;padding:4px 6px;}
+.pt-stepper button{border:none;background:none;color:var(--scrub-green-dark);padding:6px 8px;border-radius:8px;cursor:pointer;line-height:0;}
+.pt-stepper button:hover{background:var(--sterile-white);}
+.pt-stepper button:disabled{opacity:.3;cursor:default;}
+.pt-stepper .pt-label{font-size:13.5px;font-weight:700;color:var(--scrub-green-dark);min-width:170px;text-align:center;}
+.pt-chart-wrap{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px 14px;box-shadow:var(--shadow-card);margin-bottom:22px;}
+.pt-chart-title{font-size:13px;font-weight:700;color:var(--scrub-green-dark);margin:0 0 2px;}
+.pt-chart-sub{font-size:11.5px;color:var(--steel);margin:0 0 16px;}
+.pt-chart{position:relative;display:flex;align-items:flex-end;gap:2px;height:170px;padding-top:18px;border-bottom:1px solid var(--line-strong);}
+.pt-bar{flex:1 1 0;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;height:100%;position:relative;cursor:default;}
+.pt-bar i{display:block;background:var(--surgical-blue);border-radius:4px 4px 0 0;min-height:2px;transition:background .12s;}
+.pt-bar.zero i{background:var(--line-strong);}
+.pt-bar.sel i{background:var(--scrub-green);}
+.pt-bar:hover i{background:var(--scrub-green-dark);}
+.pt-bar b{position:absolute;top:0;left:0;right:0;text-align:center;font-size:10px;font-weight:700;color:var(--scrub-green-dark);font-family:'IBM Plex Mono',monospace;}
+.pt-xaxis{display:flex;gap:2px;margin-top:6px;}
+.pt-xaxis span{flex:1 1 0;min-width:0;text-align:center;font-size:9.5px;color:var(--steel);font-family:'IBM Plex Mono',monospace;overflow:hidden;}
+.pt-tip{position:absolute;pointer-events:none;background:var(--scrub-green-dark);color:#fff;font-size:11.5px;line-height:1.55;padding:6px 10px;border-radius:8px;white-space:nowrap;transform:translate(-50%,-100%);z-index:5;opacity:0;transition:opacity .12s;box-shadow:0 4px 12px -4px rgba(0,0,0,.4);}
+.pt-tip.show{opacity:1;}
+.pt-grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
+@media(max-width:900px){ .pt-grid2{grid-template-columns:1fr;} .pt-stepper .pt-label{min-width:130px;font-size:12.5px;} }
+.pt-panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow-card);}
+.pt-case{border-bottom:1px solid var(--line);padding:10px 0;cursor:pointer;}
+.pt-case:last-child{border-bottom:none;}
+.pt-case:hover{background:var(--sterile-white);}
+.pt-case .t{display:flex;justify-content:space-between;gap:8px;font-size:13px;}
+.pt-case .s{font-size:11px;color:var(--steel);margin-top:2px;}
+.pt-empty{font-size:12.5px;color:var(--steel);padding:22px 0;text-align:center;}
+
 /* ---------- HISTORY FILTERS ---------- */
 .hist-filters{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px;}
 .hist-filters .chip{font-size:11.5px;padding:5px 11px;}
@@ -362,7 +407,7 @@ input,select,textarea{font-family:inherit;}
     display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--scrub-green-dark);
     padding:6px 4px;justify-content:space-around;z-index:20;box-shadow:0 -2px 10px rgba(0,0,0,0.12);
   }
-  .bn-item{display:flex;flex-direction:column;align-items:center;gap:2px;color:#B7D6C9;background:none;border:none;padding:6px 4px;font-size:9.5px;font-weight:600;flex:1;}
+  .bn-item{display:flex;flex-direction:column;align-items:center;gap:2px;color:#B7D6C9;background:none;border:none;padding:6px 2px;font-size:9px;font-weight:600;flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;}
   .bn-item svg{width:19px;height:19px;}
   .bn-item.active{color:#fff;}
 }
@@ -449,6 +494,7 @@ input,select,textarea{font-family:inherit;}
       <button class="nav-item" data-view="print"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9 V3 h12 v6"/><rect x="6" y="14" width="12" height="7"/><rect x="4" y="9" width="16" height="7" rx="1.5"/><circle cx="17" cy="12" r="0.7" fill="currentColor"/></svg>พิมพ์สติกเกอร์</button>
       <button class="nav-item" data-view="scan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7 V4 a1 1 0 0 1 1-1 h3"/><path d="M21 7 V4 a1 1 0 0 0-1-1 h-3"/><path d="M3 17 v3 a1 1 0 0 0 1 1 h3"/><path d="M21 17 v3 a1 1 0 0 1-1 1 h-3"/><line x1="4" y1="12" x2="20" y2="12"/></svg>สแกนรับเข้า</button>
       <button class="nav-item" data-view="usage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5 H7 a2 2 0 0 0-2 2 v12 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2-2 V7 a2 2 0 0 0-2-2 h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>ประวัติการใช้</button>
+      <button class="nav-item" data-view="patient"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>ประวัติผู้ป่วย</button>
       <button class="nav-item" data-view="standards"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5 H7 a2 2 0 0 0-2 2 v12 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2-2 V7 a2 2 0 0 0-2-2 h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 13 l2 2 l4-4"/></svg>ตรวจมาตรฐาน<span class="nav-badge" id="badge-fail" style="display:none;"></span></button>
       <button class="nav-item" data-view="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3 v18 h18"/><rect x="7" y="12" width="3" height="6" rx="0.5"/><rect x="13" y="8" width="3" height="10" rx="0.5"/><rect x="19" y="5" width="3" height="13" rx="0.5"/></svg>รายงาน</button>
     </nav>
@@ -696,6 +742,74 @@ input,select,textarea{font-family:inherit;}
         </div>
       </div>
 
+      <!-- PATIENT USAGE MODULE -->
+      <div class="view" id="view-patient">
+        <div class="pt-toolbar">
+          <div class="pt-modes" id="pt-modes">
+            <button type="button" data-mode="day" class="active">รายวัน</button>
+            <button type="button" data-mode="month">รายเดือน</button>
+            <button type="button" data-mode="year">รายปี</button>
+          </div>
+          <div class="pt-stepper">
+            <button type="button" id="pt-prev" title="ก่อนหน้า"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <span class="pt-label" id="pt-label">-</span>
+            <button type="button" id="pt-next" title="ถัดไป"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+          <button class="btn btn-sm" id="pt-today" type="button">วันนี้</button>
+          <div style="flex:1;"></div>
+          <input id="pt-search" class="mono" placeholder="กรอง HN / การผ่าตัด / แผนก / อุปกรณ์" style="min-width:220px;padding:9px 12px;border:1px solid var(--line-strong);border-radius:9px;font-size:13px;outline:none;background:var(--sterile-white);">
+          <button class="btn btn-sm" id="pt-csv" type="button">ดาวน์โหลด CSV</button>
+        </div>
+
+        <div class="stat-grid pt-stats">
+          <div class="stat-card blue"><div class="n" id="pt-cases">0</div><div class="l">เคสผ่าตัด</div></div>
+          <div class="stat-card ok"><div class="n" id="pt-pieces">0</div><div class="l">เครื่องมือที่ใช้ (ชิ้น)</div></div>
+          <div class="stat-card"><div class="n" id="pt-hn">0</div><div class="l">จำนวนผู้ป่วย (HN)</div></div>
+          <div class="stat-card"><div class="n" id="pt-types">0</div><div class="l">ชนิดอุปกรณ์</div></div>
+          <div class="stat-card expired"><div class="n" id="pt-fail">0</div><div class="l">ชิ้นที่ไม่ผ่านเกณฑ์</div></div>
+        </div>
+
+        <div class="pt-chart-wrap">
+          <p class="pt-chart-title" id="pt-chart-title">จำนวนเคสผ่าตัด</p>
+          <p class="pt-chart-sub" id="pt-chart-sub">-</p>
+          <div class="pt-chart" id="pt-chart"></div>
+          <div class="pt-xaxis" id="pt-xaxis"></div>
+          <div class="pt-tip" id="pt-tip"></div>
+        </div>
+
+        <div class="pt-grid2">
+          <div class="pt-panel">
+            <h3 class="section-title" style="margin-top:0;">เครื่องมือที่ใช้มากที่สุด</h3>
+            <div style="overflow-x:auto;">
+              <table class="std-table">
+                <thead><tr><th>ชื่อชุด/อุปกรณ์</th><th>จำนวนชิ้น</th><th>จำนวนเคส</th></tr></thead>
+                <tbody id="pt-items-body"></tbody>
+              </table>
+            </div>
+            <h3 class="section-title" style="margin-top:22px;">แยกตามแผนก</h3>
+            <div style="overflow-x:auto;">
+              <table class="std-table">
+                <thead><tr><th>แผนก</th><th>เคส</th><th>ชิ้น</th></tr></thead>
+                <tbody id="pt-dept-body"></tbody>
+              </table>
+            </div>
+            <h3 class="section-title" style="margin-top:22px;">การผ่าตัดที่ทำบ่อย</h3>
+            <div style="overflow-x:auto;">
+              <table class="std-table">
+                <thead><tr><th>การผ่าตัด</th><th>เคส</th><th>ชิ้น</th></tr></thead>
+                <tbody id="pt-op-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="pt-panel">
+            <h3 class="section-title" style="margin-top:0;">รายการเคส <span id="pt-case-count" style="font-weight:500;color:var(--steel);font-size:12px;"></span></h3>
+            <p style="font-size:11.5px;color:var(--steel);margin:-6px 0 8px;">แตะที่เคส เพื่อดูเครื่องมือทั้งหมดของ HN นั้น</p>
+            <div id="pt-case-list"></div>
+            <button class="btn btn-sm" id="pt-case-more" type="button" style="width:100%;justify-content:center;margin-top:12px;display:none;">แสดงเพิ่ม</button>
+          </div>
+        </div>
+      </div>
+
       <!-- STANDARDS -->
       <div class="view" id="view-standards">
         <h3 class="section-title" style="margin-top:0;">เกณฑ์มาตรฐานที่ตรวจสอบต่อชุด</h3>
@@ -721,13 +835,13 @@ input,select,textarea{font-family:inherit;}
             ดาวน์โหลด CSV
           </button>
         </div>
-        <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px;" id="report-stat-grid">
+        <div class="stat-grid rp-stats" id="report-stat-grid">
           <div class="stat-card blue"><div class="n" id="report-total-count">0</div><div class="l">ใช้กับผู้ป่วย (ชิ้น)</div></div>
           <div class="stat-card soon"><div class="n" id="report-resterile">0</div><div class="l">ส่ง Re-sterile (ชิ้น)</div></div>
           <div class="stat-card expired"><div class="n" id="report-expired">0</div><div class="l">หมดอายุ/ตัดออก (ชิ้น)</div></div>
           <div class="stat-card ok"><div class="n" id="report-received">0</div><div class="l">รับเข้าคลัง (ชิ้น)</div></div>
         </div>
-        <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:26px;">
+        <div class="stat-grid rp-stats2">
           <div class="stat-card"><div class="n" id="report-item-types">0</div><div class="l">ชนิดอุปกรณ์ที่เคลื่อนไหว</div></div>
           <div class="stat-card"><div class="n" id="report-top-item">-</div><div class="l">ใช้บ่อยที่สุด</div></div>
         </div>
@@ -759,6 +873,7 @@ input,select,textarea{font-family:inherit;}
   <button class="bn-item" data-view="print"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9 V3 h12 v6"/><rect x="6" y="14" width="12" height="7"/><rect x="4" y="9" width="16" height="7" rx="1.5"/></svg>พิมพ์</button>
   <button class="bn-item" data-view="scan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7 V4 a1 1 0 0 1 1-1 h3"/><path d="M21 7 V4 a1 1 0 0 0-1-1 h-3"/><path d="M3 17 v3 a1 1 0 0 0 1 1 h3"/><path d="M21 17 v3 a1 1 0 0 1-1 1 h-3"/><line x1="4" y1="12" x2="20" y2="12"/></svg>รับเข้า</button>
   <button class="bn-item" data-view="usage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5 H7 a2 2 0 0 0-2 2 v12 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2-2 V7 a2 2 0 0 0-2-2 h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>บันทึกใช้</button>
+  <button class="bn-item" data-view="patient"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>ผู้ป่วย</button>
   <button class="bn-item" data-view="standards"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5 H7 a2 2 0 0 0-2 2 v12 a2 2 0 0 0 2 2 h10 a2 2 0 0 0 2-2 V7 a2 2 0 0 0-2-2 h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>มาตรฐาน</button>
   <button class="bn-item" data-view="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3 v18 h18"/><rect x="7" y="12" width="3" height="6" rx="0.5"/><rect x="13" y="8" width="3" height="10" rx="0.5"/><rect x="19" y="5" width="3" height="13" rx="0.5"/></svg>รายงาน</button>
 </nav>
@@ -1062,7 +1177,7 @@ function jsonpRequest(url, timeoutMs){
   });
 }
 /* ===== เวอร์ชันของไฟล์นี้ — ใช้เช็คว่าเครื่องเปิดไฟล์ตัวใหม่จริงหรือยัง ===== */
-const APP_VERSION = '2026-09-18-hist1';
+const APP_VERSION = '2026-09-21-pt1';
 const APP_VERSION_NOTE = 'ฐานข้อมูลแบบ 1 แถว = 1 รายการ (ต้องใช้คู่กับ Code_v2.gs)';
 
 /* =====================================================================
@@ -1335,7 +1450,7 @@ setInterval(async ()=>{
 }, 30000);
 
 /* ---------- NAV ---------- */
-const VIEW_TITLES = {dashboard:'ภาพรวม', inventory:'คลังสต๊อก', print:'พิมพ์สติกเกอร์', scan:'สแกนรับเข้า', usage:'ประวัติการใช้', standards:'ตรวจมาตรฐาน', reports:'รายงาน'};
+const VIEW_TITLES = {dashboard:'ภาพรวม', inventory:'คลังสต๊อก', print:'พิมพ์สติกเกอร์', scan:'สแกนรับเข้า', usage:'ประวัติการใช้', patient:'ประวัติการใช้กับผู้ป่วย', standards:'ตรวจมาตรฐาน', reports:'รายงาน'};
 function setView(v){
   currentView = v;
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
@@ -1348,6 +1463,7 @@ function setView(v){
   if(v === 'standards') renderStandardsView();
   if(v === 'reports') renderReportsView();
   if(v === 'usage'){ renderUsageItemList(); renderUsageHistory(); populateOrSuggestions(); }
+  if(v === 'patient') renderPatientView();
 }
 document.getElementById('nav').addEventListener('click', e=>{
   const btn = e.target.closest('.nav-item'); if(!btn) return;
@@ -3138,6 +3254,275 @@ document.getElementById('btn-export-report').addEventListener('click', ()=>{
   showToast('ดาวน์โหลดรายงาน CSV แล้ว', true);
 });
 
+
+/* =====================================================================
+   MODULE: ประวัติการใช้กับผู้ป่วย — ดูรายวัน / รายเดือน / รายปี
+   ใช้เฉพาะ log ที่เป็นการใช้กับผู้ป่วยจริง (ไม่รวม Re-sterile / หมดอายุ)
+   ===================================================================== */
+let ptMode = 'day';                 // day | month | year
+let ptAnchor = new Date();          // วันที่อ้างอิงของช่วงที่กำลังดู
+let ptQuery = '';
+let ptCaseShown = 12;
+const PT_CASE_PAGE = 12;
+
+function ptStartOfDay(d){ const x = new Date(d); x.setHours(0,0,0,0); return x; }
+function ptRange(){
+  const a = new Date(ptAnchor);
+  if(ptMode === 'day'){
+    const from = ptStartOfDay(a);
+    const to = new Date(from); to.setDate(to.getDate()+1);
+    return {from:from.getTime(), to:to.getTime()};
+  }
+  if(ptMode === 'month'){
+    const from = new Date(a.getFullYear(), a.getMonth(), 1);
+    const to = new Date(a.getFullYear(), a.getMonth()+1, 1);
+    return {from:from.getTime(), to:to.getTime()};
+  }
+  const from = new Date(a.getFullYear(), 0, 1);
+  const to = new Date(a.getFullYear()+1, 0, 1);
+  return {from:from.getTime(), to:to.getTime()};
+}
+function ptPeriodLabel(){
+  const a = new Date(ptAnchor);
+  if(ptMode === 'day')   return a.getDate() + ' ' + THAI_MONTHS_FULL[a.getMonth()] + ' ' + toBuddhistYear(a.getFullYear());
+  if(ptMode === 'month') return THAI_MONTHS_FULL[a.getMonth()] + ' ' + toBuddhistYear(a.getFullYear());
+  return 'ปี ' + toBuddhistYear(a.getFullYear());
+}
+function ptStep(dir){
+  const a = new Date(ptAnchor);
+  if(ptMode === 'day')        a.setDate(a.getDate() + dir);
+  else if(ptMode === 'month') a.setMonth(a.getMonth() + dir);
+  else                        a.setFullYear(a.getFullYear() + dir);
+  ptAnchor = a;
+  ptCaseShown = PT_CASE_PAGE;
+  renderPatientView();
+}
+
+/* log ของผู้ป่วยในช่วงที่เลือก (ผ่านตัวกรองคำค้นแล้ว) */
+function ptLogs(){
+  const {from, to} = ptRange();
+  const q = ptQuery.trim().toLowerCase();
+  return logs.filter(l=>{
+    if(logKind(l) !== 'usage') return false;
+    const t = Number(l.ts);
+    if(!(t >= from && t < to)) return false;
+    if(!q) return true;
+    return ((l.hn||'').toLowerCase().includes(q)
+         || (l.operation||'').toLowerCase().includes(q)
+         || (l.department||'').toLowerCase().includes(q)
+         || (l.name||'').toLowerCase().includes(q)
+         || (l.lot||'').toLowerCase().includes(q));
+  });
+}
+
+/* ข้อมูลกราฟ: โหมดวัน/เดือน = รายวันของเดือนนั้น, โหมดปี = รายเดือน */
+function ptChartData(){
+  const a = new Date(ptAnchor);
+  const q = ptQuery.trim().toLowerCase();
+  const matches = l => !q || ((l.hn||'').toLowerCase().includes(q) || (l.operation||'').toLowerCase().includes(q)
+      || (l.department||'').toLowerCase().includes(q) || (l.name||'').toLowerCase().includes(q) || (l.lot||'').toLowerCase().includes(q));
+  const usage = logs.filter(l=>logKind(l)==='usage' && matches(l));
+
+  if(ptMode === 'year'){
+    const buckets = Array.from({length:12}, (_,i)=>({key:i, label:THAI_MONTHS_SHORT[i], cases:new Set(), pieces:0, sel:false}));
+    usage.forEach(l=>{
+      const d = new Date(Number(l.ts));
+      if(d.getFullYear() !== a.getFullYear()) return;
+      const b = buckets[d.getMonth()];
+      b.cases.add(l.ts + '|' + (l.hn||''));
+      b.pieces++;
+    });
+    return {buckets, unit:'เดือน', title:'จำนวนเคสผ่าตัดรายเดือน'};
+  }
+  const days = new Date(a.getFullYear(), a.getMonth()+1, 0).getDate();
+  const buckets = Array.from({length:days}, (_,i)=>({key:i+1, label:String(i+1), cases:new Set(), pieces:0,
+    sel: (ptMode==='day' && (i+1) === a.getDate())}));
+  usage.forEach(l=>{
+    const d = new Date(Number(l.ts));
+    if(d.getFullYear() !== a.getFullYear() || d.getMonth() !== a.getMonth()) return;
+    const b = buckets[d.getDate()-1];
+    b.cases.add(l.ts + '|' + (l.hn||''));
+    b.pieces++;
+  });
+  return {buckets, unit:'วัน', title: ptMode==='day' ? ('จำนวนเคสผ่าตัดรายวัน — ' + THAI_MONTHS_FULL[a.getMonth()] + ' ' + toBuddhistYear(a.getFullYear())) : 'จำนวนเคสผ่าตัดรายวัน'};
+}
+
+function ptRenderChart(){
+  const wrap = document.getElementById('pt-chart');
+  const axis = document.getElementById('pt-xaxis');
+  const tip  = document.getElementById('pt-tip');
+  if(!wrap) return;
+  const {buckets, unit, title} = ptChartData();
+  document.getElementById('pt-chart-title').textContent = title;
+  const counts = buckets.map(b=>b.cases.size);
+  const max = Math.max.apply(null, counts.concat([1]));
+  const totalCases = counts.reduce((x,y)=>x+y, 0);
+  const peakIdx = counts.indexOf(max);
+  const peakTxt = (unit === 'วัน') ? ('วันที่ ' + buckets[peakIdx].label) : buckets[peakIdx].label;
+  let sub;
+  if(!totalCases){
+    sub = 'ยังไม่มีเคสในช่วงนี้';
+  }else if(ptMode === 'day'){
+    const selB = buckets.filter(b=>b.sel)[0];
+    sub = 'แท่งสีเข้ม = วันที่เลือก (' + (selB ? selB.cases.size : 0) + ' เคส) · ทั้งเดือนรวม ' + totalCases + ' เคส · สูงสุด ' + max + ' เคส (' + peakTxt + ')';
+  }else{
+    sub = 'รวม ' + totalCases + ' เคส · สูงสุด ' + max + ' เคส (' + peakTxt + ') · คลิกที่แท่งเพื่อเจาะดูรายละเอียด';
+  }
+  document.getElementById('pt-chart-sub').textContent = sub;
+
+  // แท่งบาง ปลายมน ติดเส้นฐาน · ใส่ตัวเลขเฉพาะแท่งสูงสุดกับแท่งที่เลือก (ไม่ใส่ทุกแท่ง)
+  wrap.innerHTML = buckets.map((b,i)=>{
+    const n = b.cases.size;
+    const h = Math.round((n / max) * 100);
+    const showNum = (n > 0) && (i === peakIdx || b.sel);
+    return '<div class="pt-bar' + (n?'':' zero') + (b.sel?' sel':'') + '" data-i="' + i + '">'
+         + (showNum ? '<b>' + n + '</b>' : '')
+         + '<i style="height:' + (n ? Math.max(h,3) : 2) + '%"></i></div>';
+  }).join('');
+
+  const every = buckets.length > 20 ? 5 : 1;
+  axis.innerHTML = buckets.map((b,i)=>{
+    const show = (buckets.length <= 12) || (i === 0) || ((i+1) % every === 0) || (i === buckets.length-1);
+    return '<span>' + (show ? escapeHtml(b.label) : '') + '</span>';
+  }).join('');
+
+  wrap.querySelectorAll('.pt-bar').forEach(el=>{
+    el.addEventListener('mouseenter', ()=>{
+      const b = buckets[parseInt(el.dataset.i)];
+      tip.innerHTML = '<b>' + escapeHtml(b.label) + '</b> — ' + b.cases.size + ' เคส · ' + b.pieces + ' ชิ้น';
+      const wr = wrap.getBoundingClientRect(), br = el.getBoundingClientRect();
+      tip.style.left = (br.left - wr.left + br.width/2) + 'px';
+      tip.style.top  = (br.top - wr.top - 6) + 'px';
+      tip.classList.add('show');
+    });
+    el.addEventListener('mouseleave', ()=>tip.classList.remove('show'));
+    el.addEventListener('click', ()=>{
+      const b = buckets[parseInt(el.dataset.i)];
+      const a = new Date(ptAnchor);
+      if(ptMode === 'year'){ a.setMonth(b.key); a.setDate(1); ptMode = 'month'; }
+      else { a.setDate(b.key); ptMode = 'day'; }
+      ptAnchor = a; ptCaseShown = PT_CASE_PAGE;
+      document.querySelectorAll('#pt-modes button').forEach(x=>x.classList.toggle('active', x.dataset.mode === ptMode));
+      renderPatientView();
+    });
+  });
+}
+
+function renderPatientView(){
+  if(!document.getElementById('view-patient')) return;
+  document.getElementById('pt-label').textContent = ptPeriodLabel();
+
+  const rows = ptLogs();
+  const cases = buildUsageCases(rows);
+  const hnSet = new Set(rows.map(l=>l.hn).filter(Boolean));
+  const nameSet = new Set(rows.map(l=>l.name).filter(Boolean));
+  document.getElementById('pt-cases').textContent  = cases.length;
+  document.getElementById('pt-pieces').textContent = rows.length;
+  document.getElementById('pt-hn').textContent     = hnSet.size;
+  document.getElementById('pt-types').textContent  = nameSet.size;
+  document.getElementById('pt-fail').textContent   = failCountOf(rows);
+
+  ptRenderChart();
+
+  const agg = (keyFn, label) => {
+    const m = {};
+    rows.forEach(l=>{
+      const k = keyFn(l) || '(ไม่ระบุ)';
+      m[k] = m[k] || {pieces:0, cases:new Set()};
+      m[k].pieces++;
+      m[k].cases.add(l.ts + '|' + (l.hn||''));
+    });
+    return Object.entries(m).map(([k,v])=>({name:k, pieces:v.pieces, cases:v.cases.size}))
+      .sort((a,b)=>b.pieces - a.pieces);
+  };
+  const fill = (id, list, order) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.innerHTML = list.length
+      ? list.slice(0,10).map(r=>order === 'cases-first'
+          ? '<tr><td>' + escapeHtml(r.name) + '</td><td class="mono">' + r.cases + '</td><td class="mono">' + r.pieces + '</td></tr>'
+          : '<tr><td>' + escapeHtml(r.name) + '</td><td class="mono">' + r.pieces + '</td><td class="mono">' + r.cases + '</td></tr>').join('')
+      : '<tr><td colspan="3" style="text-align:center;color:var(--steel);padding:20px;">ไม่มีข้อมูลในช่วงนี้</td></tr>';
+  };
+  fill('pt-items-body', agg(l=>l.name), 'pieces-first');
+  fill('pt-dept-body',  agg(l=>l.department), 'cases-first');
+  fill('pt-op-body',    agg(l=>l.operation), 'cases-first');
+
+  const list = document.getElementById('pt-case-list');
+  const more = document.getElementById('pt-case-more');
+  document.getElementById('pt-case-count').textContent = cases.length ? ('(' + cases.length + ' เคส)') : '';
+  if(!cases.length){
+    list.innerHTML = '<p class="pt-empty">ไม่มีเคสผ่าตัดในช่วงนี้</p>';
+    more.style.display = 'none';
+  }else{
+    const shown = cases.slice(0, ptCaseShown);
+    list.innerHTML = shown.map(c=>{
+      const f = failCountOf(c.items);
+      return '<div class="pt-case" data-hn="' + escapeHtml(c.hn||'') + '">'
+        + '<div class="t"><span><b>' + (c.hn ? 'HN ' + escapeHtml(c.hn) : '(ไม่ระบุ HN)') + '</b>'
+        + (c.operation ? ' · ' + escapeHtml(c.operation) : '') + '</span>'
+        + '<span class="lt">' + fmtCaseTime(c.ts) + '</span></div>'
+        + '<div class="s">' + (c.department ? escapeHtml(c.department) + ' · ' : '') + c.items.length + ' ชิ้น'
+        + (f ? ' · <span style="color:var(--expired);font-weight:700;">' + f + ' ไม่ผ่านเกณฑ์</span>' : '')
+        + '</div></div>';
+    }).join('');
+    const remain = cases.length - shown.length;
+    more.style.display = remain > 0 ? '' : 'none';
+    more.textContent = 'แสดงเพิ่มอีก ' + Math.min(PT_CASE_PAGE, remain) + ' เคส (เหลือ ' + remain + ')';
+    list.querySelectorAll('[data-hn]').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const hn = el.dataset.hn;
+        if(!hn){ showToast('เคสนี้ไม่ได้บันทึก HN ไว้'); return; }
+        openHnHistoryModal(hn);
+      });
+    });
+  }
+}
+
+/* ---- ตัวควบคุมของโมดูล ---- */
+(function(){
+  const modes = document.getElementById('pt-modes');
+  if(!modes) return;
+  modes.addEventListener('click', e=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    modes.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    ptMode = btn.dataset.mode;
+    ptCaseShown = PT_CASE_PAGE;
+    renderPatientView();
+  });
+  document.getElementById('pt-prev').addEventListener('click', ()=>ptStep(-1));
+  document.getElementById('pt-next').addEventListener('click', ()=>ptStep(1));
+  document.getElementById('pt-today').addEventListener('click', ()=>{ ptAnchor = new Date(); ptCaseShown = PT_CASE_PAGE; renderPatientView(); });
+  document.getElementById('pt-case-more').addEventListener('click', ()=>{ ptCaseShown += PT_CASE_PAGE; renderPatientView(); });
+  let ptTimer = null;
+  document.getElementById('pt-search').addEventListener('input', e=>{
+    ptQuery = e.target.value;
+    ptCaseShown = PT_CASE_PAGE;
+    clearTimeout(ptTimer);
+    ptTimer = setTimeout(renderPatientView, 180);
+  });
+  document.getElementById('pt-csv').addEventListener('click', ()=>{
+    const rows = ptLogs();
+    if(!rows.length){ showToast('ไม่มีข้อมูลในช่วงที่เลือก'); return; }
+    const q = v => '"' + String(v==null?'':v).replace(/"/g,'""') + '"';
+    let out = '﻿ประวัติการใช้กับผู้ป่วย,' + q(ptPeriodLabel()) + '\n\n';
+    out += 'วันที่-เวลา,HN,การผ่าตัด,แผนก,ชื่อชุด/อุปกรณ์,รหัส,Lot,วันหมดอายุ,ผ่านเกณฑ์,หมายเหตุ\n';
+    rows.slice().sort((a,b)=>Number(a.ts)-Number(b.ts)).forEach(l=>{
+      out += q(fmtCaseTime(l.ts)) + ',' + q(l.hn) + ',' + q(l.operation) + ',' + q(l.department) + ',' +
+             q(l.name) + ',' + q(l.code) + ',' + q(l.lot) + ',' + q(fmtDate(l.expiry)) + ',' +
+             q(l.pass === false ? 'ไม่ผ่าน' : 'ผ่าน') + ',' + q(l.notes) + '\n';
+    });
+    const blob = new Blob([out], {type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'patient-usage-' + ptMode + '-' + todayStr() + '.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    showToast('ดาวน์โหลดประวัติผู้ป่วย ' + rows.length + ' รายการแล้ว', true);
+  });
+})();
+
 /* ---------- RENDER ALL ---------- */
 function renderAll(){
   renderDashboard();
@@ -3146,6 +3531,7 @@ function renderAll(){
   if(currentView==='print') renderPrintView();
   if(currentView==='standards') renderStandardsView();
   if(currentView==='usage') renderUsageHistory();
+  if(currentView==='patient') renderPatientView();
 }
 
 function getAllItemNames(){
