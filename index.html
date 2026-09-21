@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Sterile Stock v2026-09-21-pt1</title>
+<title>Sterile Stock v2026-09-22-dest1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/JsBarcode/3.11.5/JsBarcode.all.min.js"></script>
@@ -271,6 +271,24 @@ input,select,textarea{font-family:inherit;}
 #outbox-pill button{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.5);color:#fff;
   font:inherit;font-size:11.5px;padding:3px 10px;border-radius:999px;cursor:pointer;flex:none;}
 @media(min-width:981px){ #outbox-pill{bottom:18px;} }
+
+/* ---------- SCAN DESTINATION ---------- */
+.scan-dest{margin:14px 0 0;border:1px solid var(--line-strong);border-radius:12px;padding:11px 13px;background:var(--sterile-white);}
+.scan-dest .sd-title{font-size:12px;font-weight:700;color:var(--scrub-green-dark);margin:0 0 8px;display:flex;align-items:center;gap:7px;}
+.scan-dest .sd-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.scan-dest .chip{font-size:11.5px;padding:6px 12px;}
+.scan-dest .sd-hint{font-size:11px;color:var(--steel);margin:9px 0 0;line-height:1.6;}
+.sc-item{background:var(--sterile-white);border:1px solid var(--line-strong);border-radius:11px;padding:12px 14px;font-size:13px;line-height:1.75;margin-bottom:16px;}
+.sc-btn{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1.5px solid var(--line-strong);background:var(--panel);border-radius:12px;padding:13px 15px;margin-bottom:9px;cursor:pointer;font:inherit;transition:border-color .14s,background .14s,transform .08s;}
+.sc-btn:hover{border-color:var(--scrub-green);background:var(--sterile-white);}
+.sc-btn:active{transform:scale(.99);}
+.sc-btn .ic{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;}
+.sc-btn .ic svg{width:17px;height:17px;}
+.sc-btn.p .ic{background:#DCEBF5;color:var(--surgical-blue);}
+.sc-btn.r .ic{background:#DDEBF1;color:var(--scrub-green);}
+.sc-btn.d .ic{background:var(--expired-pale);color:var(--expired);}
+.sc-btn .tx b{display:block;font-size:13.5px;color:var(--scrub-green-dark);}
+.sc-btn .tx span{font-size:11.5px;color:var(--steel);}
 
 /* ---------- PATIENT USAGE MODULE ---------- */
 .pt-stats{grid-template-columns:repeat(5,1fr);margin-bottom:22px;}
@@ -689,6 +707,17 @@ input,select,textarea{font-family:inherit;}
   <button class="btn btn-outline-blue" id="btn-u-find">เพิ่ม</button>
 </div>
 
+<div class="scan-dest" id="scan-dest">
+  <p class="sd-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V4a1 1 0 0 1 1-1h3"/><path d="M21 7V4a1 1 0 0 0-1-1h-3"/><path d="M3 17v3a1 1 0 0 0 1 1h3"/><path d="M21 17v3a1 1 0 0 1-1 1h-3"/><line x1="4" y1="12" x2="20" y2="12"/></svg>ยิงบาร์โค้ดแล้วให้ทำอะไร</p>
+  <div class="sd-chips" id="sd-chips">
+    <button type="button" class="chip active" data-dest="ask">ถามทุกครั้ง</button>
+    <button type="button" class="chip" data-dest="patient">ใช้กับผู้ป่วย</button>
+    <button type="button" class="chip" data-dest="resterile">ส่ง Re-sterile</button>
+    <button type="button" class="chip" data-dest="discard">จำหน่าย/ตัดออก</button>
+  </div>
+  <p class="sd-hint" id="sd-hint">ยิงแล้วระบบจะถามทุกครั้งว่าจะให้บันทึกเป็นอะไร — ถ้าต้องทำงานชุดเดียวกันหลายชิ้นติดกัน เลือกปลายทางไว้ล่วงหน้าจะเร็วกว่า</p>
+</div>
+
 <div class="hw-box" id="hw-box-usage">
   <div class="hw-head">
     <span class="hw-title"><span class="hw-ready-dot"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="6" y1="9" x2="6" y2="9"/><line x1="10" y1="9" x2="10" y2="9"/><line x1="14" y1="9" x2="14" y2="9"/><line x1="18" y1="9" x2="18" y2="9"/><line x1="7" y1="14" x2="17" y2="14"/></svg>ใช้เครื่องยิงบาร์โค้ด (USB)</span>
@@ -935,6 +964,27 @@ input,select,textarea{font-family:inherit;}
   </div>
 </div>
 
+<!-- SCAN DESTINATION CHOICE MODAL -->
+<div class="overlay" id="scanchoice-overlay">
+  <div class="modal" style="max-width:420px;">
+    <h2 style="margin-bottom:6px;">ยิงบาร์โค้ดแล้ว — จะบันทึกเป็นอะไร?</h2>
+    <div class="sc-item" id="sc-item"></div>
+    <button type="button" class="sc-btn p" data-dest="patient">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg></span>
+      <span class="tx"><b>ใช้กับผู้ป่วย</b><span>เพิ่มเข้ารายการเคสผ่าตัดที่กำลังบันทึก</span></span>
+    </button>
+    <button type="button" class="sc-btn r" data-dest="resterile">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span>
+      <span class="tx"><b>ส่ง Re-sterile</b><span>ส่งกลับจ่ายกลางทำปลอดเชื้อใหม่ ของยังใช้ได้</span></span>
+    </button>
+    <button type="button" class="sc-btn d" data-dest="discard">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
+      <span class="tx"><b>จำหน่าย / ตัดออกจากคลัง</b><span>หมดอายุ ชำรุด สูญหาย ฯลฯ — ระบุเหตุผลขั้นถัดไป</span></span>
+    </button>
+    <div class="modal-actions"><button class="btn" id="btn-cancel-scanchoice">ยกเลิก</button></div>
+  </div>
+</div>
+
 <!-- SEND OUT / RE-STERILE MODAL -->
 <div class="overlay" id="sendout-overlay">
   <div class="modal" style="max-width:430px;">
@@ -949,7 +999,7 @@ input,select,textarea{font-family:inherit;}
         </label>
         <label class="check-row" style="border-bottom:none;padding:7px 0;">
           <input type="radio" name="sendout-kind" value="expired">
-          <span><b>หมดอายุ / เสื่อมสภาพ</b><br><span style="font-size:11px;color:var(--steel);">ตัดออกถาวร นับเข้ารายงานของหมดอายุ</span></span>
+          <span><b>จำหน่าย / ตัดออกจากคลัง</b><br><span style="font-size:11px;color:var(--steel);">หมดอายุ ชำรุด สูญหาย — ตัดออกถาวร นับเข้ารายงาน</span></span>
         </label>
         <label class="check-row" style="border-bottom:none;padding:7px 0;">
           <input type="radio" name="sendout-kind" value="remove">
@@ -1177,7 +1227,7 @@ function jsonpRequest(url, timeoutMs){
   });
 }
 /* ===== เวอร์ชันของไฟล์นี้ — ใช้เช็คว่าเครื่องเปิดไฟล์ตัวใหม่จริงหรือยัง ===== */
-const APP_VERSION = '2026-09-21-pt1';
+const APP_VERSION = '2026-09-22-dest1';
 const APP_VERSION_NOTE = 'ฐานข้อมูลแบบ 1 แถว = 1 รายการ (ต้องใช้คู่กับ Code_v2.gs)';
 
 /* =====================================================================
@@ -1696,7 +1746,9 @@ function openSendOutModal(item, defaultKind){
   qtyEl.max = Math.max(1, item.qty);
   qtyEl.value = 1;
   document.getElementById('sendout-note').value = '';
-  document.getElementById('sendout-reason').value = (d < 0) ? 'ใกล้หมดอายุ' : 'ใกล้หมดอายุ';
+  fillSendOutReasons(kind === 'remove' ? 'resterile' : kind);
+  const sel = document.getElementById('sendout-reason');
+  if(kind === 'expired' && d < 0) sel.value = 'หมดอายุ';
   syncSendOutForm();
   document.getElementById('sendout-overlay').classList.add('active');
 }
@@ -1704,14 +1756,27 @@ function currentSendOutKind(){
   const r = document.querySelector('input[name="sendout-kind"]:checked');
   return r ? r.value : 'resterile';
 }
+const SENDOUT_REASONS = {
+  resterile: ['ใกล้หมดอายุ','ซองชำรุด / เปียกชื้น','เปิดซองแล้วไม่ได้ใช้','Indicator ไม่เปลี่ยนสี','ตกพื้น / ปนเปื้อน','ครบรอบทำปลอดเชื้อใหม่','อื่นๆ'],
+  expired:   ['หมดอายุ','ชำรุด / ใช้งานไม่ได้','สึกหรอ / หมดสภาพ','สูญหาย','ส่งซ่อม','โอนย้าย / บริจาค','อื่นๆ']
+};
+function fillSendOutReasons(kind){
+  const sel = document.getElementById('sendout-reason');
+  if(!sel) return;
+  const list = SENDOUT_REASONS[kind] || SENDOUT_REASONS.resterile;
+  const keep = sel.value;
+  sel.innerHTML = list.map(r=>'<option>' + escapeHtml(r) + '</option>').join('');
+  if(list.indexOf(keep) >= 0) sel.value = keep;
+}
 function syncSendOutForm(){
   const kind = currentSendOutKind();
   const isRemove = (kind === 'remove');
+  if(!isRemove) fillSendOutReasons(kind);
   document.getElementById('sendout-qty-row').style.display = isRemove ? 'none' : '';
   document.getElementById('sendout-note-row').style.display = isRemove ? 'none' : '';
   document.getElementById('sendout-title').textContent =
     kind === 'resterile' ? 'ส่งทำปลอดเชื้อใหม่ (Re-sterile)'
-    : kind === 'expired' ? 'ตัดออก: หมดอายุ/เสื่อมสภาพ'
+    : kind === 'expired' ? 'จำหน่าย / ตัดออกจากคลัง'
     : 'ลบรายการออกจากคลัง';
   document.getElementById('btn-confirm-sendout').textContent = isRemove ? 'ลบรายการ' : 'ยืนยัน';
 }
@@ -1748,9 +1813,12 @@ function sendOutItem(item, kind, count, reason, note){
   const ts = Date.now();
   const fullNote = reason + (note ? (' — ' + note) : '');
   const pass = standardPass(item);
+  // ใส่เหตุผลไว้ในชื่อรายการด้วย จะได้อ่านออกในประวัติและ CSV
+  // (ขึ้นต้นด้วย "ตัดออกจากคลัง" เหมือนเดิม ระบบจึงยังจำแนกประเภทได้ถูก)
+  const opText = (kind === 'expired') ? ('ตัดออกจากคลัง: ' + reason) : cfg.op;
 
   apiUseCase({                                   // ตัดสต๊อก + ลงประวัติที่เซิร์ฟเวอร์ (เข้าคิวส่ง ไม่ต้องรอ)
-    hn:'—', operation: cfg.op, department: cfg.dept, notes: fullNote, ts,
+    hn:'—', operation: opText, department: cfg.dept, notes: fullNote, ts,
     items:[{itemId:item.id, count, pass}]
   });
 
@@ -1758,7 +1826,7 @@ function sendOutItem(item, kind, count, reason, note){
   for(let n=0; n<count; n++){
     logs.unshift({id:'lg-'+uid(), itemId:item.id, name:item.name, code:item.code, lot:item.lot||'',
                   sterileDate:item.sterileDate||'', expiry:item.expiry||'', ts,
-                  source:kind, hn:'—', operation:cfg.op, department:cfg.dept, notes:fullNote, pass});
+                  source:kind, hn:'—', operation:opText, department:cfg.dept, notes:fullNote, pass});
   }
   cacheAll();
   renderAll();
@@ -2567,25 +2635,95 @@ document.getElementById('btn-hn-clear').addEventListener('click', ()=>{
   renderUsageHistory();
 });
 
+/* =====================================================================
+   ปลายทางของการยิงบาร์โค้ดในหน้า "บันทึกใช้"
+   ask = ถามทุกครั้ง · patient = ใช้กับผู้ป่วย · resterile · discard
+   ===================================================================== */
+let scanDest = 'ask';
+const SCAN_DEST_HINT = {
+  ask:       'ยิงแล้วระบบจะถามทุกครั้งว่าจะให้บันทึกเป็นอะไร — ถ้าต้องทำงานชุดเดียวกันหลายชิ้นติดกัน เลือกปลายทางไว้ล่วงหน้าจะเร็วกว่า',
+  patient:   'ยิงแล้วเพิ่มเข้ารายการเคสผ่าตัดที่กำลังบันทึกทันที ยิงต่อกันได้เรื่อยๆ',
+  resterile: 'ยิงแล้วเปิดหน้าต่างส่งทำปลอดเชื้อใหม่ ให้ระบุจำนวนและเหตุผล',
+  discard:   'ยิงแล้วเปิดหน้าต่างจำหน่าย/ตัดออกจากคลัง ให้ระบุจำนวนและเหตุผล'
+};
+(function(){
+  const box = document.getElementById('sd-chips');
+  if(!box) return;
+  box.addEventListener('click', e=>{
+    const chip = e.target.closest('.chip'); if(!chip) return;
+    box.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    scanDest = chip.dataset.dest;
+    try{ localStorage.setItem('sterile-scan-dest', scanDest); }catch(err){}
+    const h = document.getElementById('sd-hint');
+    if(h) h.textContent = SCAN_DEST_HINT[scanDest] || '';
+  });
+  let saved = null;
+  try{ saved = localStorage.getItem('sterile-scan-dest'); }catch(err){}
+  if(saved && SCAN_DEST_HINT[saved]){
+    const chip = box.querySelector('.chip[data-dest="' + saved + '"]');
+    if(chip) chip.click();
+  }
+})();
+
+/* ส่งของที่ยิงได้ไปยังปลายทางที่เลือก */
+function routeScannedItem(item, code){
+  if(!item){ addItemToUsageCase(null, code); return; }     // ไม่พบรหัส -> แสดงข้อความเดิม
+  if(scanDest === 'patient'){ addItemToUsageCase(item, code); return; }
+  if(scanDest === 'resterile'){ openSendOutModal(item, 'resterile'); return; }
+  if(scanDest === 'discard'){ openSendOutModal(item, 'expired'); return; }
+  openScanChoiceModal(item, code);
+}
+
+let scanChoiceItemId = null, scanChoiceCode = '';
+function openScanChoiceModal(item, code){
+  scanChoiceItemId = item.id;
+  scanChoiceCode = code || '';
+  const d = daysUntil(item.expiry);
+  document.getElementById('sc-item').innerHTML =
+    '<b>' + escapeHtml(item.name) + '</b><br>' +
+    '<span class="mono" style="font-size:11.5px;">' + escapeHtml(item.code) + ' · Lot ' + escapeHtml(item.lot||'-') + '</span><br>' +
+    'หมดอายุ ' + fmtDate(item.expiry) + ' · ' +
+    (d < 0 ? '<b style="color:var(--expired);">เกินมา ' + Math.abs(d) + ' วัน</b>'
+           : (d <= SOON_DAYS ? '<b style="color:var(--soon);">เหลืออีก ' + d + ' วัน</b>' : 'เหลืออีก ' + d + ' วัน')) +
+    ' · คงเหลือ ' + item.qty + ' ชิ้น';
+  document.getElementById('scanchoice-overlay').classList.add('active');
+}
+function closeScanChoice(){ document.getElementById('scanchoice-overlay').classList.remove('active'); }
+document.getElementById('btn-cancel-scanchoice').addEventListener('click', closeScanChoice);
+document.getElementById('scanchoice-overlay').addEventListener('click', e=>{
+  if(e.target.id === 'scanchoice-overlay') closeScanChoice();
+  const btn = e.target.closest('.sc-btn'); if(!btn) return;
+  const item = items.find(i=>i.id === scanChoiceItemId);
+  closeScanChoice();
+  if(!item) return;
+  const dest = btn.dataset.dest;
+  if(dest === 'patient') addItemToUsageCase(item, scanChoiceCode);
+  else if(dest === 'resterile') openSendOutModal(item, 'resterile');
+  else openSendOutModal(item, 'expired');
+});
+
 document.getElementById('btn-u-find').addEventListener('click', ()=>{
   const code = document.getElementById('u-scan-code').value;
   if(!code.trim()){ showToast('กรุณากรอกรหัส'); return; }
   const item = findByCode(code);
-  addItemToUsageCase(item, code);
   document.getElementById('u-scan-code').value = '';
+  routeScannedItem(item, code);
 });
 document.getElementById('u-scan-code').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('btn-u-find').click(); });
 
 let html5QrCodeUsage = null;
 let usageLastScan = { code: null, time: 0 };
 function onUsageScanSuccess(decodedText){
+  // มีหน้าต่างเปิดค้างอยู่ (เช่นกำลังเลือกปลายทาง) → ไม่รับการยิงซ้อน
+  if(document.querySelector('.overlay.active')) return;
   const now = Date.now();
   if(decodedText === usageLastScan.code && (now - usageLastScan.time) < 2000){
     return; // กันสแกนโค้ดเดิมซ้ำภายใน 2 วิ (กล้องอ่าน QR เดิมซ้ำทุกเฟรม)
   }
   usageLastScan = { code: decodedText, time: now };
   const item = findByCode(decodedText);
-  addItemToUsageCase(item, decodedText);
+  routeScannedItem(item, decodedText);
 }
 async function startUsageScanner(){
   if(typeof Html5Qrcode === 'undefined'){ showToast('โหลดไลบรารีกล้องไม่สำเร็จ กรุณากรอกรหัสด้วยตนเอง'); return; }
