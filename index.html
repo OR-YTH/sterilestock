@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Sterile Stock v2026-09-15-fix1</title>
+<title>Sterile Stock v2026-09-18-hist1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/JsBarcode/3.11.5/JsBarcode.all.min.js"></script>
@@ -271,6 +271,15 @@ input,select,textarea{font-family:inherit;}
 #outbox-pill button{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.5);color:#fff;
   font:inherit;font-size:11.5px;padding:3px 10px;border-radius:999px;cursor:pointer;flex:none;}
 @media(min-width:981px){ #outbox-pill{bottom:18px;} }
+
+/* ---------- HISTORY FILTERS ---------- */
+.hist-filters{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px;}
+.hist-filters .chip{font-size:11.5px;padding:5px 11px;}
+.hist-summary{font-size:11.5px;color:var(--steel);background:var(--sterile-white);border:1px solid var(--line);border-radius:9px;padding:8px 11px;margin:0 0 10px;line-height:1.7;}
+.hist-summary b{color:var(--scrub-green-dark);}
+.hist-kind-tag{display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px;margin-left:6px;vertical-align:middle;}
+.hist-kind-tag.resterile{background:#DDEBF1;color:#0B4F71;}
+.hist-kind-tag.expired{background:var(--expired-pale);color:var(--expired);}
 
 /* ---------- HN HISTORY ---------- */
 .hn-search-row{display:flex;gap:8px;margin:-4px 0 12px;}
@@ -662,8 +671,26 @@ input,select,textarea{font-family:inherit;}
                 <input id="hn-search" class="mono" placeholder="ค้นหาด้วย HN / การผ่าตัด / ชื่อเครื่องมือ">
                 <button class="btn btn-sm" id="btn-hn-clear" type="button">ล้าง</button>
               </div>
+              <div class="hist-filters" id="hist-range">
+                <button class="chip active" data-range="all" type="button">ทั้งหมด</button>
+                <button class="chip" data-range="1" type="button">30 วัน</button>
+                <button class="chip" data-range="3" type="button">3 เดือน</button>
+                <button class="chip" data-range="6" type="button">6 เดือน</button>
+                <button class="chip" data-range="12" type="button">1 ปี</button>
+              </div>
+              <div class="hist-filters" id="hist-kind">
+                <button class="chip active" data-kind="all" type="button">ทุกประเภท</button>
+                <button class="chip" data-kind="usage" type="button">ใช้กับผู้ป่วย</button>
+                <button class="chip" data-kind="resterile" type="button">Re-sterile</button>
+                <button class="chip" data-kind="expired" type="button">หมดอายุ/ตัดออก</button>
+              </div>
+              <div id="hist-summary" class="hist-summary"></div>
               <p class="hn-hint">แตะที่รายการ เพื่อดูว่า HN นั้นใช้เครื่องมืออะไรไปบ้างทั้งหมด</p>
               <div id="usage-history-list"><p style="font-size:12.5px;color:var(--steel);">ยังไม่มีประวัติการใช้งาน</p></div>
+              <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+                <button class="btn btn-sm" id="btn-hist-more" type="button" style="flex:1;justify-content:center;display:none;">แสดงเพิ่ม 30 เคส</button>
+                <button class="btn btn-sm" id="btn-hist-csv" type="button">ดาวน์โหลด CSV</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1035,7 +1062,7 @@ function jsonpRequest(url, timeoutMs){
   });
 }
 /* ===== เวอร์ชันของไฟล์นี้ — ใช้เช็คว่าเครื่องเปิดไฟล์ตัวใหม่จริงหรือยัง ===== */
-const APP_VERSION = '2026-09-15-fix1';
+const APP_VERSION = '2026-09-18-hist1';
 const APP_VERSION_NOTE = 'ฐานข้อมูลแบบ 1 แถว = 1 รายการ (ต้องใช้คู่กับ Code_v2.gs)';
 
 /* =====================================================================
@@ -2119,13 +2146,27 @@ function failCountOf(list){ return list.filter(i=>i.pass===false).length; }
 let hnHistoryQuery = '';
 let hnModalOnlyFail = false;
 let hnModalHn = '';
+let histRange = 'all';        // all | 1 | 3 | 6 | 12  (เดือน)
+let histKind  = 'all';        // all | usage | resterile | expired
+const HIST_PAGE = 30;
+let histShown = HIST_PAGE;
 
-function renderUsageHistory(){
-  const el = document.getElementById('usage-history-list');
-  if(!el) return;
+/* คัดกรองประวัติตามช่วงเวลา + ประเภท + คำค้น แล้วรวมเป็นเคส */
+function filteredHistoryGroups(){
   const q = hnHistoryQuery.trim().toLowerCase();
-  if(!logs.length){ el.innerHTML = '<p style="font-size:12.5px;color:var(--steel);">ยังไม่มีประวัติการใช้งาน</p>'; return; }
-  let groups = buildUsageCases(logs);
+  let src = logs.slice();
+
+  if(histRange !== 'all'){
+    const months = parseInt(histRange) || 1;
+    const from = new Date();
+    if(months === 1) from.setDate(from.getDate() - 30);
+    else from.setMonth(from.getMonth() - months);
+    const fromTs = from.getTime();
+    src = src.filter(l=>Number(l.ts) >= fromTs);
+  }
+  if(histKind !== 'all') src = src.filter(l=>logKind(l) === histKind);
+
+  let groups = buildUsageCases(src);
   if(q){
     groups = groups.filter(g=>{
       if((g.hn||'').toLowerCase().includes(q)) return true;
@@ -2134,19 +2175,56 @@ function renderUsageHistory(){
       return g.items.some(i=>(i.name||'').toLowerCase().includes(q) || (i.lot||'').toLowerCase().includes(q));
     });
   }
-  if(!groups.length){
-    el.innerHTML = `<p style="font-size:12.5px;color:var(--steel);">ไม่พบเคสที่ตรงกับ “${escapeHtml(hnHistoryQuery)}”</p>`;
+  groups.sort((a,b)=>Number(b.ts) - Number(a.ts));
+  return groups;
+}
+
+function renderHistSummary(groups){
+  const box = document.getElementById('hist-summary');
+  if(!box) return;
+  if(!logs.length){ box.innerHTML = 'ยังไม่มีประวัติในระบบ'; return; }
+  const tsList = logs.map(l=>Number(l.ts)).filter(t=>t>0);
+  const oldest = Math.min.apply(null, tsList);
+  const newest = Math.max.apply(null, tsList);
+  const pieces = groups.reduce((s,g)=>s + g.items.length, 0);
+  const kinds = {usage:0, resterile:0, expired:0};
+  groups.forEach(g=>g.items.forEach(i=>{ kinds[logKind(i)]++; }));
+  box.innerHTML =
+    'มีข้อมูลในเครื่องตั้งแต่ <b>' + fmtDate(monthDayIso(oldest)) + '</b> ถึง <b>' + fmtDate(monthDayIso(newest)) + '</b> (รวม ' + logs.length + ' ชิ้น)<br>' +
+    'ตามที่กรองอยู่: <b>' + groups.length + '</b> เคส / <b>' + pieces + '</b> ชิ้น — ' +
+    'ใช้กับผู้ป่วย ' + kinds.usage + ' · Re-sterile ' + kinds.resterile + ' · หมดอายุ/ตัดออก ' + kinds.expired;
+}
+
+function renderUsageHistory(){
+  const el = document.getElementById('usage-history-list');
+  if(!el) return;
+  const moreBtn = document.getElementById('btn-hist-more');
+  if(!logs.length){
+    el.innerHTML = '<p style="font-size:12.5px;color:var(--steel);">ยังไม่มีประวัติการใช้งาน</p>';
+    renderHistSummary([]);
+    if(moreBtn) moreBtn.style.display = 'none';
     return;
   }
-  const shown = groups.slice(0, q ? 40 : 15);
-  const head = q
-    ? `<p style="font-size:11.5px;color:var(--steel);margin:0 0 8px;">พบ ${groups.length} เคส${groups.length>shown.length?` (แสดง ${shown.length} เคสล่าสุด)`:''}</p>`
-    : '';
+  const groups = filteredHistoryGroups();
+  renderHistSummary(groups);
+  if(!groups.length){
+    el.innerHTML = '<p style="font-size:12.5px;color:var(--steel);">ไม่พบเคสที่ตรงกับเงื่อนไขที่เลือก</p>';
+    if(moreBtn) moreBtn.style.display = 'none';
+    return;
+  }
+  if(histShown > groups.length) histShown = Math.max(HIST_PAGE, Math.ceil(groups.length/HIST_PAGE)*HIST_PAGE);
+  const shown = groups.slice(0, histShown);
+  if(moreBtn){
+    const remain = groups.length - shown.length;
+    moreBtn.style.display = remain > 0 ? '' : 'none';
+    moreBtn.textContent = 'แสดงเพิ่มอีก ' + Math.min(HIST_PAGE, remain) + ' เคส (เหลือ ' + remain + ')';
+  }
+  const head = `<p style="font-size:11.5px;color:var(--steel);margin:0 0 8px;">แสดง ${shown.length} จาก ${groups.length} เคส</p>`;
   el.innerHTML = head + shown.map(g=>{
     const failCount = failCountOf(g.items);
     return `<div class="log-row clickable" data-hn-case="${escapeHtml(g.hn)}" style="flex-direction:column;align-items:stretch;">
       <div style="display:flex;justify-content:space-between;gap:8px;">
-        <span><b>${g.hn?('HN '+escapeHtml(g.hn)):'-'}</b>${g.operation?(' • '+escapeHtml(g.operation)):''}</span>
+        <span><b>${g.hn && g.hn !== '—' ? ('HN '+escapeHtml(g.hn)) : '-'}</b>${g.operation?(' • '+escapeHtml(g.operation)):''}${histTag(g)}</span>
         <span style="display:flex;align-items:center;gap:6px;">
           <span class="lt">${fmtCaseTime(g.ts)}</span>
           <svg class="row-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -2164,6 +2242,60 @@ function renderUsageHistory(){
     });
   });
 }
+
+function histTag(g){
+  const k = logKind(g.items && g.items[0] ? g.items[0] : g);
+  if(k === 'resterile') return '<span class="hist-kind-tag resterile">Re-sterile</span>';
+  if(k === 'expired')   return '<span class="hist-kind-tag expired">หมดอายุ/ตัดออก</span>';
+  return '';
+}
+
+/* ---- ปุ่มกรองช่วงเวลา / ประเภท / แสดงเพิ่ม / CSV ---- */
+(function(){
+  const rangeBox = document.getElementById('hist-range');
+  if(rangeBox) rangeBox.addEventListener('click', e=>{
+    const chip = e.target.closest('.chip'); if(!chip) return;
+    rangeBox.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    histRange = chip.dataset.range;
+    histShown = HIST_PAGE;
+    renderUsageHistory();
+  });
+  const kindBox = document.getElementById('hist-kind');
+  if(kindBox) kindBox.addEventListener('click', e=>{
+    const chip = e.target.closest('.chip'); if(!chip) return;
+    kindBox.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    histKind = chip.dataset.kind;
+    histShown = HIST_PAGE;
+    renderUsageHistory();
+  });
+  const more = document.getElementById('btn-hist-more');
+  if(more) more.addEventListener('click', ()=>{ histShown += HIST_PAGE; renderUsageHistory(); });
+
+  const csv = document.getElementById('btn-hist-csv');
+  if(csv) csv.addEventListener('click', ()=>{
+    const groups = filteredHistoryGroups();
+    if(!groups.length){ showToast('ไม่มีข้อมูลตามเงื่อนไขที่เลือก'); return; }
+    const q = v => '"' + String(v==null?'':v).replace(/"/g,'""') + '"';
+    let out = '\uFEFFวันที่-เวลา,ประเภท,HN,การผ่าตัด/เหตุผล,แผนก,ชื่อชุด/อุปกรณ์,รหัส,Lot,วันหมดอายุ,ผ่านเกณฑ์,หมายเหตุ\n';
+    const KIND_TH = {usage:'ใช้กับผู้ป่วย', resterile:'ส่ง Re-sterile', expired:'หมดอายุ/ตัดออก'};
+    groups.forEach(g=>{
+      g.items.forEach(i=>{
+        out += q(fmtCaseTime(g.ts)) + ',' + q(KIND_TH[logKind(i)]) + ',' + q(g.hn) + ',' + q(g.operation) + ',' +
+               q(g.department) + ',' + q(i.name) + ',' + q(i.code) + ',' + q(i.lot) + ',' +
+               q(fmtDate(i.expiry)) + ',' + q(i.pass === false ? 'ไม่ผ่าน' : 'ผ่าน') + ',' + q(g.notes) + '\n';
+      });
+    });
+    const blob = new Blob([out], {type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'sterile-stock-history-' + todayStr() + '.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    showToast('ดาวน์โหลดประวัติ ' + groups.length + ' เคสแล้ว', true);
+  });
+})();
 
 /* ---------- หน้าต่างสรุปการใช้เครื่องมือราย HN ---------- */
 function openHnHistoryModal(hn, keepFilter){
@@ -2303,7 +2435,7 @@ document.getElementById('btn-copy-selftest').addEventListener('click', ()=>{
   if(navigator.clipboard) navigator.clipboard.writeText(t).then(()=>showToast('คัดลอกแล้ว', true), ()=>showToast('คัดลอกไม่สำเร็จ'));
   else showToast('อุปกรณ์นี้คัดลอกอัตโนมัติไม่ได้ ให้ถ่ายหน้าจอแทน');
 });
-document.getElementById('hn-search').addEventListener('input', e=>{ hnHistoryQuery = e.target.value; renderUsageHistory(); });
+document.getElementById('hn-search').addEventListener('input', e=>{ hnHistoryQuery = e.target.value; histShown = HIST_PAGE; renderUsageHistory(); });
 document.getElementById('hn-search').addEventListener('keydown', e=>{
   if(e.key === 'Enter'){
     const q = hnHistoryQuery.trim();
@@ -2314,6 +2446,7 @@ document.getElementById('hn-search').addEventListener('keydown', e=>{
 });
 document.getElementById('btn-hn-clear').addEventListener('click', ()=>{
   hnHistoryQuery = '';
+  histShown = HIST_PAGE;
   document.getElementById('hn-search').value = '';
   renderUsageHistory();
 });
