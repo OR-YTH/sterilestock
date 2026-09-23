@@ -1238,7 +1238,12 @@ const APP_VERSION_NOTE = 'ฐานข้อมูลแบบ 1 แถว = 1 �
 
 let apiOnline = true;
 
-function apiCall(action, payload){
+/* คำสั่งที่ "เขียน" ข้อมูล — payload อาจยาว ต้องส่งผ่าน POST ไม่ใช่ GET
+   (GET ส่งผ่าน URL ซึ่งจำกัดความยาว ~8000 ตัวอักษร payload ใหญ่จะพังเงียบๆ) */
+const WRITE_ACTIONS = ['addItem','updateItem','deleteItem','useCase','setCatalog','deleteCatalog','setSetting','setPin','addDirEntry'];
+
+/* อ่าน = JSONP GET (payload สั้น เร็ว) */
+function apiCallGet(action, payload){
   return new Promise(resolve=>{
     if(!APPS_SCRIPT_URL){ resolve({ok:false, error:'ยังไม่ได้ตั้งค่าฐานข้อมูล'}); return; }
     const cbName = 'sscb_' + Math.random().toString(36).slice(2);
@@ -1257,6 +1262,51 @@ function apiCall(action, payload){
     document.body.appendChild(script);
     setTimeout(()=> finish({ok:false, error:'หมดเวลารอฐานข้อมูล'}), 25000);
   });
+}
+
+/* เขียน = form POST ผ่าน hidden iframe — payload ยาวได้ไม่จำกัด
+   หมายเหตุ: อ่านผลตอบกลับข้ามโดเมนไม่ได้ (same-origin policy) จึงยืนยันผลด้วยการเช็ค rev
+   ว่าเพิ่มขึ้นหลังส่ง ถ้า rev ขยับ = เซิร์ฟเวอร์รับและบันทึกแล้วจริง */
+function apiCallPost(action, payload){
+  return new Promise(resolve=>{
+    if(!APPS_SCRIPT_URL){ resolve({ok:false, error:'ยังไม่ได้ตั้งค่าฐานข้อมูล'}); return; }
+    const iframeName = 'ssfrm_' + Math.random().toString(36).slice(2);
+    const iframe = document.createElement('iframe');
+    iframe.name = iframeName; iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    const form = document.createElement('form');
+    form.method = 'POST'; form.action = APPS_SCRIPT_URL; form.target = iframeName;
+    const input = document.createElement('input');
+    input.type = 'hidden'; input.name = 'payload';
+    input.value = JSON.stringify({ action: action, data: payload || {} });
+    form.appendChild(input);
+    document.body.appendChild(form);
+
+    let done = false;
+    const cleanup = ()=>{
+      setTimeout(()=>{ try{ if(form.parentNode) form.parentNode.removeChild(form); if(iframe.parentNode) iframe.parentNode.removeChild(iframe); }catch(e){} }, 800);
+    };
+    const finish = async ()=>{
+      if(done) return; done = true;
+      // POST เสร็จแล้ว ยืนยันผลด้วยการเช็ค rev ว่าขยับหรือไม่
+      const revRes = await apiCallGet('rev');
+      cleanup();
+      if(revRes.ok && revRes.data && typeof revRes.data.rev !== 'undefined'){
+        resolve({ ok:true, data:{ rev: revRes.data.rev } });
+      }else{
+        resolve({ ok:false, error:'ส่งข้อมูลแล้วแต่ยืนยันผลไม่ได้ ลองใหม่อีกครั้ง' });
+      }
+    };
+    iframe.addEventListener('load', ()=>{ setTimeout(finish, 400); });
+    setTimeout(finish, 26000); // เผื่อ iframe ไม่ยิง load event
+    try{ form.submit(); }catch(e){ done=true; cleanup(); resolve({ok:false, error:'ส่งข้อมูลไม่สำเร็จ'}); }
+  });
+}
+
+/* ตัวเลือกอัตโนมัติ: เขียนใช้ POST, อ่านใช้ GET */
+function apiCall(action, payload){
+  if(WRITE_ACTIONS.indexOf(action) >= 0) return apiCallPost(action, payload);
+  return apiCallGet(action, payload);
 }
 
 /* เรียก API พร้อมจัดการข้อผิดพลาดให้เรียบร้อย — คืน true/false */
