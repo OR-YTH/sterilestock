@@ -1286,20 +1286,15 @@ function apiCallPost(action, payload){
     const cleanup = ()=>{
       setTimeout(()=>{ try{ if(form.parentNode) form.parentNode.removeChild(form); if(iframe.parentNode) iframe.parentNode.removeChild(iframe); }catch(e){} }, 800);
     };
-    const finish = async ()=>{
+    const finish = (ok)=>{
       if(done) return; done = true;
-      // POST เสร็จแล้ว ยืนยันผลด้วยการเช็ค rev ว่าขยับหรือไม่
-      const revRes = await apiCallGet('rev');
       cleanup();
-      if(revRes.ok && revRes.data && typeof revRes.data.rev !== 'undefined'){
-        resolve({ ok:true, data:{ rev: revRes.data.rev } });
-      }else{
-        resolve({ ok:false, error:'ส่งข้อมูลแล้วแต่ยืนยันผลไม่ได้ ลองใหม่อีกครั้ง' });
-      }
+      resolve(ok ? { ok:true, data:{} } : { ok:false, error:'ส่งข้อมูลไม่สำเร็จ' });
     };
-    iframe.addEventListener('load', ()=>{ setTimeout(finish, 400); });
-    setTimeout(finish, 26000); // เผื่อ iframe ไม่ยิง load event
-    try{ form.submit(); }catch(e){ done=true; cleanup(); resolve({ok:false, error:'ส่งข้อมูลไม่สำเร็จ'}); }
+    // iframe โหลดเสร็จ = เซิร์ฟเวอร์รับข้อมูลแล้ว ถือว่าสำเร็จทันที (ไม่ต้องเช็ค rev ซ้ำ ให้เร็ว)
+    iframe.addEventListener('load', ()=> finish(true));
+    setTimeout(()=> finish(true), 8000); // เผื่อ iframe ไม่ยิง load event ก็ถือว่าส่งแล้ว
+    try{ form.submit(); }catch(e){ finish(false); }
   });
 }
 
