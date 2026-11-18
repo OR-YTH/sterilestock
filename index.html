@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Sterile Stock v2026-09-22-dest1</title>
+<title>Sterile Stock v2026-11-13-v3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/JsBarcode/3.11.5/JsBarcode.all.min.js"></script>
@@ -271,6 +271,31 @@ input,select,textarea{font-family:inherit;}
 #outbox-pill button{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.5);color:#fff;
   font:inherit;font-size:11.5px;padding:3px 10px;border-radius:999px;cursor:pointer;flex:none;}
 @media(min-width:981px){ #outbox-pill{bottom:18px;} }
+
+/* ---------- v3: เรื่องที่ต้องตรวจ / ล้างของหมดอายุ / วันที่ใช้จริง ---------- */
+#issue-pill{position:fixed;left:14px;bottom:128px;z-index:151;display:none;align-items:center;gap:8px;
+  padding:9px 14px;border-radius:999px;font-size:12.5px;font-weight:700;background:#B3261E;color:#fff;cursor:pointer;
+  box-shadow:0 6px 20px -6px rgba(5,46,66,.35);max-width:calc(100vw - 28px);}
+#issue-pill.show{display:flex;}
+@media(min-width:981px){ #issue-pill{bottom:62px;} }
+.issue-card{border:1px solid var(--line-strong);border-radius:12px;padding:11px 13px;margin-bottom:10px;background:#fff;}
+.issue-head{display:flex;justify-content:space-between;gap:8px;font-size:13px;}
+.issue-head .lt{font-size:11px;color:var(--steel);white-space:nowrap;}
+.issue-sub{font-size:12px;color:var(--steel);margin-top:3px;}
+.issue-list{margin:8px 0 0;padding-left:18px;font-size:12.5px;line-height:1.6;}
+.issue-actions{display:flex;justify-content:flex-end;gap:6px;margin-top:9px;}
+#inv-bulk-bar{display:none;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  background:var(--expired-pale);border:1px solid var(--expired);color:var(--expired);border-radius:11px;padding:9px 13px;font-size:12.5px;margin-bottom:14px;}
+.bulk-list{border:1px solid var(--line);border-radius:10px;padding:4px 12px;max-height:230px;overflow:auto;}
+.bulk-row{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--line);}
+.bulk-row:last-child{border-bottom:none;}
+.bulk-note{font-size:12px;line-height:1.7;background:var(--sterile-white);border-radius:10px;padding:10px 12px;margin-top:12px;}
+.btn-danger-solid{background:var(--expired);color:#fff;border-color:var(--expired);}
+.usedate-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.usedate-chips .chip{font-size:11.5px;padding:6px 12px;cursor:pointer;}
+.usedate-hint{font-size:11.5px;color:var(--steel);margin-top:7px;}
+.usedate-hint.back{background:var(--soon-pale);border:1px solid var(--soon);color:#7A5518;border-radius:9px;padding:7px 10px;font-weight:600;}
+.hist-kind-tag.backdated{background:var(--soon-pale);color:#7A5518;}
 
 /* ---------- SCAN DESTINATION ---------- */
 .scan-dest{margin:14px 0 0;border:1px solid var(--line-strong);border-radius:12px;padding:11px 13px;background:var(--sterile-white);}
@@ -576,6 +601,7 @@ input,select,textarea{font-family:inherit;}
           <span class="chip" data-f="expired">หมดอายุ</span>
           <span class="chip" data-f="fail">ไม่ผ่านมาตรฐาน</span>
         </div>
+        <div id="inv-bulk-bar"></div>
         <div class="tray-grid" id="inventory-list"></div>
       </div>
 
@@ -666,8 +692,8 @@ input,select,textarea{font-family:inherit;}
               </select>
             </div>
             <label class="check-row" style="border-bottom:none;padding-top:2px;">
-              <input type="checkbox" id="r-save-catalog" checked>
-              <span>บันทึกเป็นรายการมาตรฐาน (ครั้งหน้าสแกนรหัสนี้จะเติมให้อัตโนมัติ)</span>
+              <input type="checkbox" id="r-save-catalog">
+              <span>บันทึกรหัสนี้เป็นรายการมาตรฐาน (ติ๊กเฉพาะรหัสที่ใช้ซ้ำเดิมทุกครั้ง — บาร์โค้ดจ่ายกลางไม่ซ้ำ ไม่ต้องติ๊ก)</span>
             </label>
             <button class="btn btn-primary" id="btn-receive-save" style="width:100%;justify-content:center;margin-top:10px;">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9 V3 h12 v6"/><rect x="6" y="14" width="12" height="7"/><rect x="4" y="9" width="16" height="7" rx="1.5"/></svg>
@@ -692,6 +718,10 @@ input,select,textarea{font-family:inherit;}
             <div class="field-row">
               <div class="field"><label>HN ผู้ป่วย</label><input id="u-hn" class="mono" placeholder="เช่น 68-012345"></div>
               <div class="field"><label>แผนก</label><input id="u-dept" list="dept-suggestions" placeholder="เช่น ศัลยกรรม"></div>
+            </div>
+            <div class="field"><label>วันที่ใช้จริง <span style="font-weight:400;color:var(--steel);">(ยิงย้อนหลังได้)</span></label>
+              <div class="usedate-chips" id="u-usedate-chips"></div>
+              <div class="usedate-hint" id="u-usedate-hint"></div>
             </div>
             <div class="field"><label>การผ่าตัด</label><input id="u-op" list="operation-suggestions" placeholder="เช่น Appendectomy"></div>
             <div class="field"><label>หมายเหตุ (ปัจจัยเสี่ยงต่อการติดเชื้ออื่นๆ)</label><textarea id="u-notes" rows="2" placeholder="ไม่บังคับ"></textarea></div>
@@ -750,8 +780,6 @@ input,select,textarea{font-family:inherit;}
                 <button class="chip active" data-range="all" type="button">ทั้งหมด</button>
                 <button class="chip" data-range="1" type="button">30 วัน</button>
                 <button class="chip" data-range="3" type="button">3 เดือน</button>
-                <button class="chip" data-range="6" type="button">6 เดือน</button>
-                <button class="chip" data-range="12" type="button">1 ปี</button>
               </div>
               <div class="hist-filters" id="hist-kind">
                 <button class="chip active" data-kind="all" type="button">ทุกประเภท</button>
@@ -1054,6 +1082,15 @@ input,select,textarea{font-family:inherit;}
 <div id="print-area"><div class="label-sheet" id="print-sheet"></div></div>
 
 <div class="toast" id="toast"></div>
+<!-- เรื่องที่ต้องตรวจ (รายการที่ไม่ได้ถูกบันทึกขึ้นฐานข้อมูลกลาง) -->
+<div class="overlay" id="issue-overlay">
+  <div class="modal" style="max-width:600px;" id="issue-modal-content"></div>
+</div>
+<!-- ล้างของหมดอายุทั้งหมด -->
+<div class="overlay" id="bulk-overlay">
+  <div class="modal" style="max-width:520px;" id="bulk-modal-content"></div>
+</div>
+<div id="issue-pill"></div>
 <div id="outbox-pill"></div>
 
 <datalist id="cssd-item-names"></datalist>
@@ -1086,12 +1123,13 @@ let currentUsageCase = { items: [] };
 let currentView = "dashboard";
 let invFilter = "all";
 let editingId = null;
+let editingBaseQty = null;
 let selectedForPrint = new Set();
 let html5QrCodeReceive = null;
 
 function uid(){return 'id-' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);}
 function genCode(){return 'SS-' + Math.random().toString(36).slice(2,8).toUpperCase();}
-function todayStr(){const d=new Date();return d.toISOString().slice(0,10);}
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 /* ---------- ตัวแปลงวันที่แบบทนทุกรูปแบบ ----------
    Google Sheets ส่งวันที่กลับมาได้หลายหน้าตา (Date object, ISO เต็ม, 15/08/2569,
    ตัวเลข serial) ถ้าไม่แปลงก่อนจะกลายเป็น "NaN undefined NaN" */
@@ -1169,6 +1207,18 @@ function statusOf(item){
 function standardPass(item){
   return (item.checklist || []).every(Boolean) && (item.checklist||[]).length === CRITERIA.length && statusOf(item) !== 'expired';
 }
+/* ผ่านเกณฑ์ ณ "วันที่ใช้จริง" (ใช้กับการยิงย้อนหลัง — ของที่ยังไม่หมดอายุในวันที่ใช้ ถือว่าผ่าน) */
+function daysUntilFrom(dateStr, fromIso){
+  const iso = toIsoDateSafe(dateStr);
+  if(!iso) return 9999;
+  const from = new Date((fromIso || todayStr())+'T00:00:00');
+  const target = new Date(iso+'T00:00:00');
+  if(isNaN(target.getTime()) || isNaN(from.getTime())) return 9999;
+  return Math.round((target-from)/86400000);
+}
+function standardPassAt(item, dateIso){
+  return (item.checklist || []).every(Boolean) && (item.checklist||[]).length === CRITERIA.length && daysUntilFrom(item.expiry, dateIso) >= 0;
+}
 function escapeHtml(s){
   return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
@@ -1227,8 +1277,8 @@ function jsonpRequest(url, timeoutMs){
   });
 }
 /* ===== เวอร์ชันของไฟล์นี้ — ใช้เช็คว่าเครื่องเปิดไฟล์ตัวใหม่จริงหรือยัง ===== */
-const APP_VERSION = '2026-09-22-dest1';
-const APP_VERSION_NOTE = 'ฐานข้อมูลแบบ 1 แถว = 1 รายการ (ต้องใช้คู่กับ Code_v2.gs)';
+const APP_VERSION = '2026-11-13-v3';
+const APP_VERSION_NOTE = 'หลายเครื่อง · ยิงใช้ย้อนหลัง · เก็บประวัติ 90 วัน (ใช้คู่กับ Code.gs v3 — ยังใช้กับหลังบ้าน v2 ได้ชั่วคราว)';
 
 /* =====================================================================
    ชั้นข้อมูล v2 — คุยกับ Apps Script แบบสั่งทีละรายการ
@@ -1237,15 +1287,26 @@ const APP_VERSION_NOTE = 'ฐานข้อมูลแบบ 1 แถว = 1 �
    ===================================================================== */
 
 let apiOnline = true;
+let serverApi = 0;            // 0 = ยังไม่รู้ · 2 = หลังบ้านรุ่นเก่า · 3 = หลังบ้าน v3 (หลายเครื่อง / เก็บ 90 วัน)
+try{ serverApi = parseInt(localStorage.getItem('sterile-server-api') || '0', 10) || 0; }catch(e){}
+function setServerApi(n){
+  if(serverApi === n) return;
+  serverApi = n;
+  try{ localStorage.setItem('sterile-server-api', String(n)); }catch(e){}
+  updateVersionStrip();
+}
+/* แถบเวอร์ชัน: บอกทั้งรุ่นของหน้าเว็บและรุ่นของหลังบ้าน — ดูได้ทันทีว่าเครื่องไหนอัปเดตแล้ว */
+function updateVersionStrip(){
+  const el = document.getElementById('version-strip-text');
+  if(el) el.textContent = 'Sterile Stock ' + APP_VERSION + (serverApi >= 3 ? ' · หลังบ้าน v3' : (serverApi === 2 ? ' · หลังบ้าน v2 (ยังไม่ได้อัปเดต)' : ''));
+}
 
-/* คำสั่งที่ "เขียน" ข้อมูล — payload อาจยาว ต้องส่งผ่าน POST ไม่ใช่ GET
-   (GET ส่งผ่าน URL ซึ่งจำกัดความยาว ~8000 ตัวอักษร payload ใหญ่จะพังเงียบๆ) */
-const WRITE_ACTIONS = ['addItem','updateItem','deleteItem','useCase','setCatalog','deleteCatalog','setSetting','setPin','addDirEntry'];
+/* คำสั่ง "อ่าน" ส่งแบบ GET · ที่เหลือคือ "เขียน" ส่งแบบ POST (ยาวได้ไม่จำกัด) */
+const READ_ACTIONS = ['ping','rev','loadAll','sync','lookup','getSetting','monthReport'];
 
-/* อ่าน = JSONP GET (payload สั้น เร็ว) */
-function apiCallGet(action, payload){
+/* ช่องทางสำรองสำหรับ "อ่าน": JSONP แบบเดิม — ใช้เมื่อเบราว์เซอร์อ่านผลผ่าน fetch ไม่ได้ */
+function apiCallJsonp(action, payload, timeoutMs){
   return new Promise(resolve=>{
-    if(!APPS_SCRIPT_URL){ resolve({ok:false, error:'ยังไม่ได้ตั้งค่าฐานข้อมูล'}); return; }
     const cbName = 'sscb_' + Math.random().toString(36).slice(2);
     const script = document.createElement('script');
     let done = false;
@@ -1254,66 +1315,67 @@ function apiCallGet(action, payload){
       if(script.parentNode) script.parentNode.removeChild(script);
     };
     const finish = (res)=>{ if(done) return; done = true; cleanup(); resolve(res); };
-    window[cbName] = (res)=> finish(res || {ok:false, error:'ไม่มีข้อมูลตอบกลับ'});
-    script.onerror = ()=> finish({ok:false, error:'เชื่อมต่อฐานข้อมูลไม่ได้'});
+    window[cbName] = (res)=> finish(res || {ok:false, net:true, error:'ไม่มีข้อมูลตอบกลับ'});
+    script.onerror = ()=> finish({ok:false, net:true, offline:true, error:'เชื่อมต่อฐานข้อมูลไม่ได้'});
     let url = APPS_SCRIPT_URL + '?action=' + encodeURIComponent(action) + '&callback=' + cbName;
     if(payload) url += '&data=' + encodeURIComponent(JSON.stringify(payload));
     script.src = url;
     document.body.appendChild(script);
-    setTimeout(()=> finish({ok:false, error:'หมดเวลารอฐานข้อมูล'}), 25000);
+    setTimeout(()=> finish({ok:false, net:true, error:'หมดเวลารอฐานข้อมูล'}), timeoutMs || 25000);
   });
 }
 
-/* เขียน = form POST ผ่าน hidden iframe — payload ยาวได้ไม่จำกัด
-   หมายเหตุ: อ่านผลตอบกลับข้ามโดเมนไม่ได้ (same-origin policy) จึงยืนยันผลด้วยการเช็ค rev
-   ว่าเพิ่มขึ้นหลังส่ง ถ้า rev ขยับ = เซิร์ฟเวอร์รับและบันทึกแล้วจริง */
-function apiCallPost(action, payload){
-  return new Promise(resolve=>{
-    if(!APPS_SCRIPT_URL){ resolve({ok:false, error:'ยังไม่ได้ตั้งค่าฐานข้อมูล'}); return; }
-    const iframeName = 'ssfrm_' + Math.random().toString(36).slice(2);
-    const iframe = document.createElement('iframe');
-    iframe.name = iframeName; iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-    const form = document.createElement('form');
-    form.method = 'POST'; form.action = APPS_SCRIPT_URL; form.target = iframeName;
-    const input = document.createElement('input');
-    input.type = 'hidden'; input.name = 'payload';
-    input.value = JSON.stringify({ action: action, data: payload || {} });
-    form.appendChild(input);
-    document.body.appendChild(form);
-
-    let done = false;
-    const cleanup = ()=>{
-      setTimeout(()=>{ try{ if(form.parentNode) form.parentNode.removeChild(form); if(iframe.parentNode) iframe.parentNode.removeChild(iframe); }catch(e){} }, 800);
-    };
-    const finish = (ok)=>{
-      if(done) return; done = true;
-      cleanup();
-      resolve(ok ? { ok:true, data:{} } : { ok:false, error:'ส่งข้อมูลไม่สำเร็จ' });
-    };
-    // iframe โหลดเสร็จ = เซิร์ฟเวอร์รับข้อมูลแล้ว ถือว่าสำเร็จทันที (ไม่ต้องเช็ค rev ซ้ำ ให้เร็ว)
-    iframe.addEventListener('load', ()=> finish(true));
-    setTimeout(()=> finish(true), 8000); // เผื่อ iframe ไม่ยิง load event ก็ถือว่าส่งแล้ว
-    try{ form.submit(); }catch(e){ finish(false); }
-  });
+/* เรียกหลังบ้านแล้ว "อ่านผลจริง" ทุกครั้ง (ไม่เดาว่าสำเร็จ)
+     {ok:true, data}                  สำเร็จ
+     {ok:false, error}                หลังบ้านไม่รับ — ส่งซ้ำก็ไม่ผ่าน ต้องให้คนตรวจ
+     {ok:false, net:true, error}      ส่งไม่ถึง / หลังบ้านไม่ว่าง — ลองใหม่ได้ (ส่งซ้ำไม่ทำให้ข้อมูลซ้ำ)            */
+async function apiCall(action, payload, opts){
+  if(!APPS_SCRIPT_URL) return {ok:false, error:'ยังไม่ได้ตั้งค่าฐานข้อมูล'};
+  const isRead = READ_ACTIONS.indexOf(action) >= 0;
+  const timeoutMs = (opts && opts.timeout) || (isRead ? 30000 : 60000);
+  const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  const timer = setTimeout(()=>{ if(ctrl) ctrl.abort(); }, timeoutMs);
+  try{
+    let resp;
+    if(isRead){
+      let url = APPS_SCRIPT_URL + '?action=' + encodeURIComponent(action);
+      if(payload) url += '&data=' + encodeURIComponent(JSON.stringify(payload));
+      resp = await fetch(url, {method:'GET', redirect:'follow', signal: ctrl ? ctrl.signal : undefined});
+    }else{
+      const body = new URLSearchParams();
+      body.set('payload', JSON.stringify({action: action, data: payload || {}}));
+      resp = await fetch(APPS_SCRIPT_URL, {method:'POST', body: body, redirect:'follow', signal: ctrl ? ctrl.signal : undefined});
+    }
+    const text = await resp.text();
+    let j = null;
+    try{ j = JSON.parse(text); }catch(e){}
+    if(!j || typeof j !== 'object') return {ok:false, net:true, busy:true, error:'หลังบ้านตอบกลับผิดรูปแบบ'};
+    if(j.ok === false && j.retry){ j.net = true; j.busy = true; }
+    return j;
+  }catch(e){
+    const aborted = !!(e && e.name === 'AbortError');
+    if(isRead && !aborted && navigator.onLine !== false){
+      const viaJsonp = await apiCallJsonp(action, payload, Math.min(timeoutMs, 25000));
+      if(viaJsonp && (viaJsonp.ok || !viaJsonp.net)) return viaJsonp;
+    }
+    return {ok:false, net:true, offline:!aborted, error: aborted ? 'หมดเวลารอฐานข้อมูล' : 'เชื่อมต่อฐานข้อมูลไม่ได้'};
+  }finally{
+    clearTimeout(timer);
+  }
 }
 
-/* ตัวเลือกอัตโนมัติ: เขียนใช้ POST, อ่านใช้ GET */
-function apiCall(action, payload){
-  if(WRITE_ACTIONS.indexOf(action) >= 0) return apiCallPost(action, payload);
-  return apiCallGet(action, payload);
-}
-
-/* เรียก API พร้อมจัดการข้อผิดพลาดให้เรียบร้อย — คืน true/false */
+/* เรียก API ตรงๆ (ไม่เข้าคิว) พร้อมแจ้งถ้าไม่สำเร็จ */
 async function apiDo(action, payload, failMsg){
   const res = await apiCall(action, payload);
   if(res.ok){
     if(!apiOnline){ apiOnline = true; setSyncStatus('ok'); }
-    if(res.data && typeof res.data.rev !== 'undefined') lastRev = res.data.rev;
+    if(res.data && typeof res.data.rev !== 'undefined'){
+      if(res.data.rev === lastRev + 1) lastRev = res.data.rev;      // ไม่มีเครื่องอื่นแทรก
+      else if(res.data.rev !== lastRev) setTimeout(()=>syncNow(), 50);
+    }
     return res;
   }
-  apiOnline = false;
-  setSyncStatus('save-failed');
+  if(res.net){ apiOnline = false; setSyncStatus('save-failed'); }
   showToast((failMsg || 'บันทึกไม่สำเร็จ') + ' — ' + (res.error || 'ไม่ทราบสาเหตุ'));
   return res;
 }
@@ -1323,15 +1385,49 @@ function localGet(key, fallback){
   catch(e){ return fallback; }
 }
 function localSet(key, value){
-  try{ localStorage.setItem('sterile-'+key, JSON.stringify(value)); }catch(e){}
+  try{ localStorage.setItem('sterile-'+key, JSON.stringify(value)); return true; }catch(e){ return false; }
 }
 function cacheAll(){
-  localSet('items', items); localSet('usage-logs', logs);
-  localSet('catalog', catalog); localSet('or-directory', orDirectory);
-  localSet('item-shelf-memory', itemShelfMemory);
+  const okAll = [
+    localSet('items', items), localSet('usage-logs', logs),
+    localSet('catalog', catalog), localSet('or-directory', orDirectory),
+    localSet('item-shelf-memory', itemShelfMemory), localSet('zero-names', zeroNames)
+  ].every(Boolean);
+  // เก็บ "เลขรุ่น" คู่กับข้อมูล เปิดแอปครั้งหน้าจะดึงเฉพาะส่วนที่เปลี่ยน ไม่ต้องโหลดใหม่ทั้งชุด
+  // ถ้าเขียนลงเครื่องไม่ครบ (ที่เก็บเต็ม) จะไม่เก็บเลขรุ่น → ครั้งหน้าโหลดใหม่ทั้งชุดเอง ข้อมูลจึงไม่เพี้ยน
+  if(okAll && serverApi >= 3 && lastRev >= 0){ localSet('last-rev', lastRev); localSet('cache-v', 3); }
+  else{ try{ localStorage.removeItem('sterile-last-rev'); }catch(e){} }
 }
 
 let lastRev = -1;
+let zeroNames = [];           // ชื่อที่ของหมดคลังแล้ว (หลังบ้านส่งมาให้ เพราะเครื่องนี้โหลดเฉพาะของที่ยังเหลือ)
+let retainDays = 90;          // เก็บประวัติกี่วันหลังวันที่ใช้ (หลังบ้านเป็นคนกำหนด)
+let lastFullLoadAt = 0;
+let lastSyncAt = 0;
+let mutationSeq = 0;          // เพิ่มทุกครั้งที่เครื่องนี้บันทึกอะไร — กันข้อมูลที่โหลดค้างอยู่มาทับของที่เพิ่งบันทึก
+
+function rowsToObjects(cols, rows){
+  return (rows || []).map(r=>{ const o = {}; for(let i=0;i<cols.length;i++) o[cols[i]] = r[i]; return o; });
+}
+function fixItem(o){
+  if(typeof o.checklist === 'string') o.checklist = o.checklist.replace(/,/g,'').split('').map(x=>x === '1');
+  else if(!Array.isArray(o.checklist)) o.checklist = [true,true,true,true];
+  o.qty = parseInt(o.qty, 10) || 0;
+  o.createdAt = Number(o.createdAt) || 0;
+  o.id = String(o.id); o.code = String(o.code || ''); o.name = String(o.name || '');
+  o.lot = (o.lot === null || o.lot === undefined) ? '' : String(o.lot);
+  return o;
+}
+function fixLog(o){
+  o.pass = !(o.pass === false || o.pass === 0 || o.pass === '0' || o.pass === 'false');
+  o.ts = Number(o.ts) || 0;
+  o.recTs = Number(o.recTs) || 0;
+  o.id = String(o.id); o.hn = (o.hn === null || o.hn === undefined) ? '' : String(o.hn);
+  o.lot = (o.lot === null || o.lot === undefined) ? '' : String(o.lot);
+  return o;
+}
+/* ของที่ "ยังเหลือในคลัง" จริงๆ — ทุกหน้าจอที่นับ/แสดงคลังใช้ตัวนี้ */
+function stockItems(){ return items.filter(i=>(parseInt(i.qty, 10) || 0) > 0); }
 
 /* แสดงข้อมูลที่เก็บไว้ในเครื่องก่อนทันที ไม่ต้องรอคลาวด์ — เปิดแอปแล้วเห็นของเลย */
 let cacheShown = false;
@@ -1339,73 +1435,170 @@ function showCachedFirst(){
   if(cacheShown) return;
   const cached = localGet('items', null);
   if(cached === null) return;
-  items = normalizeRecordDates(cached || []);
-  logs = normalizeRecordDates(localGet('usage-logs', []) || []);
+  items = normalizeRecordDates(cached || []).map(fixItem);
+  logs = normalizeRecordDates(localGet('usage-logs', []) || []).map(fixLog);
   catalog = localGet('catalog', []) || [];
   const cd = localGet('or-directory', null);
   if(cd) orDirectory = cd;
   itemShelfMemory = localGet('item-shelf-memory', {}) || {};
+  zeroNames = localGet('zero-names', []) || [];
+  const lr = localGet('last-rev', null);
+  lastRev = (localGet('cache-v', 0) === 3 && typeof lr === 'number') ? lr : -1;
+  if(lastRev >= 0) lastFullLoadAt = Date.now();      // เริ่มจับเวลาโหลดทั้งชุดรอบถัดไป
   cacheShown = true;
   renderAll();
   populateOrSuggestions();
 }
 
-async function loadData(){
-  if(!APPS_SCRIPT_URL){ setSyncStatus('unconfigured'); renderAll(); populateOrSuggestions(); return; }
-  showCachedFirst();
-  if(outboxPending()){
-    // ยังมีของค้างส่ง — ห้ามเอาข้อมูลคลาวด์มาทับ ไม่งั้นของที่เพิ่งบันทึกจะหาย
-    drainOutbox();
-    return;
+function applySettings(st, full){
+  if(full || st['or-directory'] !== undefined){
+    // รายการเริ่มต้นฝังอยู่ในไฟล์เว็บอยู่แล้ว เซิร์ฟเวอร์เก็บเฉพาะชื่อที่ผู้ใช้พิมพ์เพิ่มเอง
+    const savedDir = st['or-directory'] || {operations:[], departments:[]};
+    const uniq = (a)=>Array.from(new Set(a.filter(x=>x && String(x).trim())));
+    orDirectory = {
+      operations: uniq([...(savedDir.operations||[]), ...SEED_OPERATIONS]),
+      departments: uniq([...(savedDir.departments||[]), ...SEED_DEPARTMENTS])
+    };
   }
-  const res = await apiCall('loadAll');
-  if(!res.ok){
-    // อ่านไม่ได้ → แสดงข้อมูลสำรองในเครื่อง แบบอ่านอย่างเดียว
-    apiOnline = false;
-    items = normalizeRecordDates(localGet('items', []));
-    logs = normalizeRecordDates(localGet('usage-logs', []));
-    catalog = localGet('catalog', []);
-    orDirectory = localGet('or-directory', {operations:[], departments:[]});
-    itemShelfMemory = localGet('item-shelf-memory', {});
-    setSyncStatus('offline');
-    renderAll(); populateOrSuggestions();
-    return;
-  }
-  apiOnline = true;
-  const d = res.data || {};
-  items = normalizeRecordDates(d.items || []);
-  logs = normalizeRecordDates(d.logs || []);
-  catalog = d.catalog || [];
-  const st = d.settings || {};
-  const savedDir = st['or-directory'] || {operations:[], departments:[]};
-  itemShelfMemory = st['item-shelf-memory'] || {};
-  lastRev = typeof d.rev !== 'undefined' ? d.rev : lastRev;
+  if(full || st['item-shelf-memory'] !== undefined) itemShelfMemory = st['item-shelf-memory'] || {};
+}
 
-  // รายการเริ่มต้นฝังอยู่ในไฟล์เว็บอยู่แล้ว ไม่ต้องเก็บซ้ำบนเซิร์ฟเวอร์
-  // เซิร์ฟเวอร์เก็บเฉพาะชื่อที่ผู้ใช้พิมพ์เพิ่มเอง → ข้อมูลที่ส่งไป-มาจึงเล็กเสมอ
-  const uniq = (a)=>Array.from(new Set(a.filter(x=>x && String(x).trim())));
-  orDirectory = {
-    operations: uniq([...(savedDir.operations||[]), ...SEED_OPERATIONS]),
-    departments: uniq([...(savedDir.departments||[]), ...SEED_DEPARTMENTS])
-  };
+/* รับข้อมูลทั้งชุดจากหลังบ้าน (v3 = แบบย่อ เฉพาะของที่ยังเหลือ · v2 = แบบเดิม) */
+function applyFullLoad(d){
+  apiOnline = true;
+  if(d.v >= 3){
+    setServerApi(3);
+    items = normalizeRecordDates(rowsToObjects(d.itemCols, d.items)).map(fixItem);
+    logs = normalizeRecordDates(rowsToObjects(d.logCols, d.logs)).map(fixLog);
+    zeroNames = d.zeroNames || [];
+    retainDays = d.retainDays || 90;
+  }else{
+    setServerApi(2);
+    items = normalizeRecordDates(d.items || []).map(fixItem);
+    logs = normalizeRecordDates(d.logs || []).map(fixLog);
+    zeroNames = [];
+  }
+  catalog = d.catalog || [];
+  applySettings(d.settings || {}, true);
+  lastRev = typeof d.rev !== 'undefined' ? d.rev : lastRev;
+  lastFullLoadAt = Date.now();
   cacheAll();
   setSyncStatus('ok');
   renderAll();
   populateOrSuggestions();
+  if(currentView === 'usage') renderUsageItemList();
+  if(currentView === 'reports') renderReportsView();
+}
+
+/* รับเฉพาะ "ส่วนที่เปลี่ยน" จากเครื่องอื่น แล้วปะเข้ากับข้อมูลในเครื่อง */
+function applyDelta(d){
+  (d.items || []).forEach(raw=>{
+    const it = fixItem(raw); normalizeRecordDates([it]);
+    const idx = items.findIndex(i=>i.id === it.id);
+    if(idx >= 0) items[idx] = it;              // ถ้าหมดแล้วก็เก็บไว้ (qty 0) ยิงซ้ำจะได้รู้ทันทีว่าถูกใช้ไปแล้ว
+    else if(it.qty > 0) items.push(it);
+  });
+  if((d.itemDel || []).length){
+    const gone = new Set(d.itemDel.map(String));
+    items = items.filter(i=>!gone.has(i.id));
+  }
+  if((d.logs || []).length){
+    const pos = new Map(); logs.forEach((l, i)=>pos.set(l.id, i));
+    const fresh = [];
+    d.logs.forEach(raw=>{
+      const l = fixLog(raw); normalizeRecordDates([l]);
+      if(pos.has(l.id)) logs[pos.get(l.id)] = l; else fresh.push(l);
+    });
+    if(fresh.length) logs = fresh.concat(logs);
+  }
+  (d.catalog || []).forEach(c=>{ const i = catalog.findIndex(x=>x.code === c.code); if(i >= 0) catalog[i] = c; else catalog.push(c); });
+  if((d.catDel || []).length){ const cg = new Set(d.catDel.map(String)); catalog = catalog.filter(x=>!cg.has(String(x.code))); }
+  const st = d.settings || {};
+  applySettings(st, false);
+  if(typeof d.rev !== 'undefined') lastRev = d.rev;
+  cacheAll();
+  renderAll();
+  if(Object.keys(st).length) populateOrSuggestions();
+  if(currentView === 'usage') renderUsageItemList();
+  if(currentView === 'reports') renderReportsView();
+}
+
+let loadInFlight = false;
+async function loadData(forceFull){
+  if(!APPS_SCRIPT_URL){ setSyncStatus('unconfigured'); renderAll(); populateOrSuggestions(); return; }
+  showCachedFirst();
+  if(outboxPending()){ drainOutbox(); return; }          // ยังมีของค้างส่ง → ส่งก่อน (ส่งเสร็จแล้วจะซิงก์เอง) ห้ามเอาคลาวด์มาทับ
+  if(!forceFull && serverApi >= 3 && lastRev >= 0){ return syncNow(); }    // มีข้อมูลในเครื่องอยู่แล้ว → ดึงเฉพาะส่วนที่เปลี่ยน
+  if(loadInFlight) return;
+  loadInFlight = true;
+  const seq = mutationSeq;
+  try{
+    const res = await apiCall('loadAll', {lean:1}, {timeout:70000});
+    if(!res.ok){
+      apiOnline = false;
+      setSyncStatus('offline');                           // ใช้ข้อมูลสำรองในเครื่องไปก่อน
+      renderAll(); populateOrSuggestions();
+      return;
+    }
+    if(seq !== mutationSeq || outboxPending()){ drainOutbox(); return; }   // ระหว่างรอ เครื่องนี้บันทึกของใหม่ → ชุดที่ได้มาเก่าไปแล้ว ทิ้ง
+    applyFullLoad(res.data || {});
+  }finally{
+    loadInFlight = false;
+    lastSyncAt = Date.now();
+  }
+}
+
+/* ซิงก์กับเครื่องอื่น: หลังบ้าน v3 ส่งเฉพาะส่วนที่เปลี่ยน · หลังบ้านรุ่นเก่าเช็คเลขรุ่นแล้วโหลดใหม่ทั้งชุด */
+let syncInFlight = false;
+async function syncNow(){
+  if(!APPS_SCRIPT_URL || syncInFlight || loadInFlight) return;
+  if(outboxPending()){ drainOutbox(); return; }
+  syncInFlight = true;
+  const seq = mutationSeq;
+  let goFull = false;
+  try{
+    if(serverApi === 2){
+      const rr = await apiCall('rev', null, {timeout:20000});
+      if(!rr.ok){ if(rr.net){ apiOnline = false; setSyncStatus('offline'); } return; }
+      if(!apiOnline){ apiOnline = true; setSyncStatus('ok'); }
+      if(rr.data && rr.data.rev !== lastRev) goFull = true;
+      return;
+    }
+    const r = await apiCall('sync', {since:lastRev}, {timeout:25000});
+    if(!r.ok){
+      if(r.net){ apiOnline = false; setSyncStatus('offline'); }
+      else if(/ไม่รู้จักคำสั่ง/.test(r.error || '')){ setServerApi(2); goFull = true; }   // หลังบ้านยังเป็นรุ่นเก่า
+      return;
+    }
+    if(!apiOnline){ apiOnline = true; setSyncStatus('ok'); }
+    setServerApi(3);
+    const d = r.data || {};
+    if(d.full){ goFull = true; return; }
+    if(seq !== mutationSeq || outboxPending()) return;     // เครื่องนี้เพิ่งบันทึกของใหม่ → รอส่งให้เสร็จก่อนค่อยซิงก์รอบหน้า
+    if(d.changed) applyDelta(d);
+    else if(typeof d.rev !== 'undefined' && d.rev !== lastRev){ lastRev = d.rev; localSet('last-rev', lastRev); }
+  }finally{
+    syncInFlight = false;
+    lastSyncAt = Date.now();
+    if(goFull) loadData(true);
+  }
 }
 
 /* =====================================================================
    OUTBOX — บันทึกเบื้องหลัง ไม่ต้องยืนรอ Apps Script
-   หน้าจออัปเดตทันที งานถูกต่อคิวลง localStorage แล้วทยอยส่งขึ้นคลาวด์
-   ปลอดภัยเพราะ: คิวอยู่ใน localStorage (ปิดเครื่อง/รีเฟรชไม่หาย),
-   ส่งเรียงลำดับทีละงาน, ถ้าส่งไม่ขึ้นจะเตือนค้างไว้ + ลองใหม่เอง,
-   และ loadData() ห้ามดึงข้อมูลคลาวด์มาทับตราบใดที่คิวยังไม่ว่าง
+   หน้าจออัปเดตทันที งานถูกต่อคิวลง localStorage แล้วทยอยส่งขึ้นคลาวด์ทีละงาน
+   - ส่งไม่ถึง (เน็ตหลุด/หลังบ้านไม่ว่าง) → เก็บไว้ ลองใหม่เอง ส่งซ้ำไม่ทำให้ข้อมูลซ้ำ
+   - หลังบ้าน "ไม่รับ" งานไหน → เอางานนั้นออกจากคิว (ไม่ให้ขวางงานอื่น) แล้วขึ้น "เรื่องที่ต้องตรวจ"
+   - บันทึกการใช้: หลังบ้านตอบผลรายชิ้น ชิ้นที่ถูกเครื่องอื่นใช้ไปแล้วจะถูกแจ้ง ไม่หายเงียบ
    ===================================================================== */
 let outbox = [];
 let outboxDraining = false;
 let outboxDoneTimer = null;
+let fullAfterDrain = false;
+let outboxNextTryAt = 0;      // เวลาที่จะลองส่งรอบถัดไป (เว้นระยะนานขึ้นเรื่อยๆ ตอนส่งไม่ถึง)
+let issues = [];              // เรื่องที่ต้องให้คนตรวจ
 
-function outboxLoad(){ outbox = localGet('outbox', []) || []; }
+function outboxLoad(){ outbox = localGet('outbox', []) || []; issues = localGet('issues', []) || []; }
 function outboxSave(){ localSet('outbox', outbox); }
 function outboxPending(){ return outbox.length; }
 
@@ -1427,18 +1620,19 @@ function renderOutboxPill(justFinished){
   if(stuck){
     el.className = 'show stuck';
     el.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
-      + '<span>ยังส่งขึ้นคลาวด์ไม่ได้ ' + outbox.length + ' รายการ — เก็บไว้ในเครื่องแล้ว</span>'
+      + '<span>ยังส่งขึ้นคลาวด์ไม่ได้ ' + outbox.length + ' รายการ — เก็บไว้ในเครื่องแล้ว จะส่งให้เองเมื่อเชื่อมต่อได้</span>'
       + '<button type="button" id="ob-retry">ลองใหม่</button>';
     const rb = document.getElementById('ob-retry');
-    if(rb) rb.onclick = ()=>{ outbox.forEach(j=>j.tries = 0); outboxSave(); drainOutbox(); };
+    if(rb) rb.onclick = ()=>{ outbox.forEach(j=>j.tries = 0); outboxSave(); outboxNextTryAt = 0; drainOutbox(); };
   }else{
     el.className = 'show saving';
     el.innerHTML = '<span class="ob-spin"></span><span>กำลังบันทึกขึ้นคลาวด์ ' + outbox.length + ' รายการ</span>';
   }
 }
 
-function outboxEnqueue(action, payload, key){
-  outbox.push({oid:'ob-'+uid(), action, payload, key:key||'', tries:0, ts:Date.now()});
+function outboxEnqueue(action, payload, meta){
+  mutationSeq++;
+  outbox.push({oid:'ob-'+uid(), action, payload, meta: meta || null, tries:0, ts:Date.now()});
   outboxSave();
   cacheAll();
   renderOutboxPill();
@@ -1446,19 +1640,36 @@ function outboxEnqueue(action, payload, key){
   return true;
 }
 
-/* ก่อนลองส่งซ้ำ ให้เช็คก่อนว่างานนั้น "ขึ้นไปแล้วจริงหรือยัง"
-   (JSONP อาจส่งถึงเซิร์ฟเวอร์สำเร็จแต่คำตอบหายกลางทาง — ถ้าส่งซ้ำจะได้ข้อมูลซ้ำ) */
-async function outboxAlreadyApplied(job){
-  if(job.action !== 'addItem' && job.action !== 'useCase') return false;
-  const res = await apiCall('loadAll');
-  if(!res.ok || !res.data) return false;
-  if(job.action === 'addItem'){
-    const id = job.payload && job.payload.item && job.payload.item.id;
-    return !!(id && (res.data.items||[]).some(i=>i.id === id));
+async function ensureApiLevel(){
+  if(serverApi > 0) return true;
+  const p = await apiCall('ping', null, {timeout:15000});
+  if(!p.ok) return false;
+  setServerApi((p.data && p.data.api >= 3) ? 3 : 2);
+  return true;
+}
+
+/* แปลงงานให้เข้ากับหลังบ้านรุ่นเก่า (ช่วงที่ยังไม่ได้อัปเดต Apps Script) */
+function jobToWire(job){
+  const p = job.payload || {};
+  if(serverApi < 3){
+    if(job.action === 'useItems') return {action:'useCase', payload:{hn:p.hn, operation:p.operation, department:p.department, notes:p.notes, ts:p.ts, items:p.items}};
+    if(job.action === 'mergeSetting') return {action:'setSetting', payload:{key:p.key, value: p.key === 'item-shelf-memory' ? itemShelfMemory : {[p.field]: p.value}}};
   }
-  const ts = job.payload && job.payload.ts;
-  const hn = job.payload && job.payload.hn;
-  return !!(ts && (res.data.logs||[]).some(l=>l.ts === ts && l.hn === hn));
+  return {action:job.action, payload:p};
+}
+/* เฉพาะหลังบ้านรุ่นเก่า: ก่อนส่งซ้ำ เช็คก่อนว่าเคสนั้นขึ้นไปแล้วหรือยัง (v3 ไม่ต้อง เพราะหลังบ้านกันซ้ำให้เอง) */
+async function legacyAlreadyApplied(job){
+  if(job.action !== 'useItems' && job.action !== 'useCase') return false;
+  const res = await apiCall('loadAll', null, {timeout:70000});
+  if(!res.ok || !res.data) return false;
+  const ts = job.payload && job.payload.ts, hn = job.payload && job.payload.hn;
+  return !!(ts && (res.data.logs || []).some(l=>Number(l.ts) === Number(ts) && String(l.hn) === String(hn)));
+}
+function isBenignReject(job, error){
+  const e = String(error || '');
+  if(job.action === 'addItem' && e.indexOf('มีรายการ id นี้อยู่แล้ว') >= 0) return true;    // ขึ้นไปแล้วตั้งแต่ครั้งก่อน
+  if(job.action === 'deleteItem' && e.indexOf('ไม่พบรายการ id') >= 0) return true;          // ถูกลบไปแล้ว
+  return false;
 }
 
 async function drainOutbox(){
@@ -1466,51 +1677,234 @@ async function drainOutbox(){
   if(!APPS_SCRIPT_URL) return;
   if(!outbox.length){ renderOutboxPill(); return; }
   outboxDraining = true;
-  let sentAny = false;
+  let sentAny = false, needSync = false;
   try{
+    if(!(await ensureApiLevel())){
+      outbox[0].tries++; outboxSave(); apiOnline = false; renderOutboxPill();
+      return;
+    }
     while(outbox.length){
       const job = outbox[0];
-      if(job.tries >= 1 && await outboxAlreadyApplied(job)){
-        outbox.shift(); outboxSave(); sentAny = true; renderOutboxPill();
-        continue;                                   // ขึ้นไปแล้ว ไม่ต้องส่งซ้ำ
+      if(job.action === 'deleteItems' && serverApi < 3){      // หลังบ้านรุ่นเก่าไม่มีคำสั่งลบเป็นชุด → แตกเป็นทีละรายการ
+        outbox.shift();
+        const singles = ((job.payload && job.payload.ids) || []).map(id=>({oid:'ob-'+uid(), action:'deleteItem', payload:{id}, meta:null, tries:0, ts:job.ts}));
+        outbox = singles.concat(outbox); outboxSave();
+        continue;
       }
-      const res = await apiCall(job.action, job.payload);
+      if(serverApi < 3 && job.tries >= 1 && await legacyAlreadyApplied(job)){
+        outbox.shift(); outboxSave(); sentAny = true; needSync = true; renderOutboxPill();
+        continue;
+      }
+      const wire = jobToWire(job);
+      const res = await apiCall(wire.action, wire.payload, {timeout:60000});
       if(res && res.ok){
         outbox.shift(); outboxSave(); sentAny = true;
-        if(res.data && typeof res.data.rev !== 'undefined') lastRev = res.data.rev;
         if(!apiOnline){ apiOnline = true; setSyncStatus('ok'); }
+        if(onJobDone(job, res.data || {})) needSync = true;
         renderOutboxPill();
-      }else{
-        job.tries++;
+      }else if(res && res.net && !(res.busy && job.tries >= 8)){
+        job.tries++;                                         // ส่งไม่ถึง → หยุดไว้ รักษาลำดับงาน แล้วลองใหม่เอง
         outboxSave();
-        apiOnline = false;
+        if(!res.busy) apiOnline = false;
         renderOutboxPill();
-        break;                                      // หยุดไว้ รักษาลำดับงาน
+        break;
+      }else if(res && !res.net && serverApi >= 3 && /ไม่รู้จักคำสั่ง/.test(res.error || '')){
+        setServerApi(2);                                     // หลังบ้านยังเป็นรุ่นเก่า → ส่งงานเดิมอีกครั้งด้วยคำสั่งแบบเก่า
+        continue;
+      }else if(res && !res.net && isBenignReject(job, res.error)){
+        outbox.shift(); outboxSave(); sentAny = true; needSync = true; renderOutboxPill();
+      }else{
+        outbox.shift(); outboxSave();                        // หลังบ้านไม่รับ → ไม่ให้ขวางงานอื่น แล้วแจ้งให้คนตรวจ
+        onJobRejected(job, (res && res.error) || 'ไม่ทราบสาเหตุ');
+        renderOutboxPill();
       }
     }
-  } finally {
+  }finally{
     outboxDraining = false;
     if(outbox.length){
       const wait = Math.min(60000, 2500 * Math.pow(2, Math.min(outbox[0].tries, 4)));
-      setTimeout(drainOutbox, wait);
+      outboxNextTryAt = Date.now() + wait;
+      setTimeout(()=>{ if(Date.now() >= outboxNextTryAt - 50) drainOutbox(); }, wait);
     }else{
       renderOutboxPill(sentAny);
-      setSyncStatus('ok');
+      if(apiOnline) setSyncStatus('ok');
+      if(fullAfterDrain){ fullAfterDrain = false; setTimeout(()=>loadData(true), 50); }
+      else if(needSync) setTimeout(()=>syncNow(), 50);
     }
   }
 }
 
-window.addEventListener('online', ()=>{ if(outbox.length){ outbox.forEach(j=>j.tries=0); outboxSave(); drainOutbox(); } });
+/* งานขึ้นคลาวด์สำเร็จ — คืน true ถ้าต้องซิงก์ต่อ (มีเครื่องอื่นบันทึกแทรกเข้ามา) */
+function onJobDone(job, d){
+  let needSync = false;
+  if(typeof d.rev !== 'undefined'){
+    if(d.rev === lastRev + 1){ lastRev = d.rev; localSet('last-rev', lastRev); }   // ไม่มีเครื่องอื่นแทรก ไม่ต้องดึงอะไรเพิ่ม
+    else if(d.rev !== lastRev) needSync = true;
+  }
+  if(d.already) needSync = true;
+  if(job.action === 'useItems' && Array.isArray(d.results)) reconcileUse(job, d);
+  if(job.action === 'updateItem' && typeof d.qty !== 'undefined'){
+    const it = items.find(i=>i.id === String(d.id));
+    if(it && it.qty !== d.qty){ it.qty = d.qty; cacheAll(); renderAll(); }
+  }
+  return needSync;
+}
+
+/* หลังบ้านตอบผลรายชิ้นของเคส — ชิ้นที่ไม่ได้ถูกบันทึก ต้องถอนสิ่งที่เครื่องนี้แสดงไว้ล่วงหน้า แล้วแจ้ง */
+function reconcileUse(job, d){
+  const p = job.payload || {};
+  const labels = (job.meta && job.meta.labels) || [];
+  const bad = [];
+  (d.results || []).forEach((r, j)=>{
+    if(r.status === 'saved') return;
+    const prefix = 'lg-' + p.caseId + '-' + j + '-';
+    logs = logs.filter(l=>String(l.id).indexOf(prefix) !== 0);
+    const local = items.find(i=>i.id === String(r.itemId));
+    const lb = labels[j] || {};
+    if(r.status === 'short'){ if(local) local.qty = parseInt(r.qty, 10) || 0; }
+    else{ items = items.filter(i=>i.id !== String(r.itemId)); }
+    bad.push({status:r.status, name: lb.name || r.name || (local && local.name) || '', lot: lb.lot || r.lot || '', qty:r.qty, lastUse: r.lastUse || null});
+  });
+  if(!bad.length) return;
+  const saved = (d.results || []).filter(r=>r.status === 'saved').length;
+  addIssue({kind:'use', hn:p.hn, operation:p.operation, ts:p.ts, saved, bad});
+  cacheAll();
+  renderAll();
+  if(currentView === 'usage') renderUsageItemList();
+  showIssueModal();
+}
+
+/* หลังบ้านไม่รับทั้งงาน */
+function onJobRejected(job, error){
+  addIssue({kind:'rejected', title: describeJob(job), error: String(error), job:{action:job.action, payload:job.payload, meta:job.meta}});
+  fullAfterDrain = true;        // ข้อมูลที่เครื่องนี้แสดงล่วงหน้าไม่ตรงกับหลังบ้านแล้ว → โหลดชุดจริงมาแทน
+  showIssueModal();
+}
+
+/* ---------- เรื่องที่ต้องตรวจ ---------- */
+const JOB_LABEL = {addItem:'รับเข้า/เพิ่มรายการ', updateItem:'แก้ไขรายการ', deleteItem:'ลบรายการ', deleteItems:'ลบหลายรายการ',
+  useItems:'บันทึกการใช้', useCase:'บันทึกการใช้', setCatalog:'บันทึกรายการมาตรฐาน', deleteCatalog:'ลบรายการมาตรฐาน',
+  setSetting:'บันทึกการตั้งค่า', mergeSetting:'บันทึกการตั้งค่า', addDirEntry:'เพิ่มชื่อการผ่าตัด/แผนก'};
+function describeJob(job){
+  const p = job.payload || {};
+  let t = JOB_LABEL[job.action] || job.action;
+  if(p.item && p.item.name) t += ': ' + p.item.name + (p.item.lot ? ' (Lot ' + p.item.lot + ')' : '');
+  else if(job.action === 'useItems' || job.action === 'useCase') t += ': ' + (p.hn && p.hn !== '—' ? 'HN ' + p.hn + ' • ' : '') + (p.operation || '') + ' (' + ((p.items || []).length) + ' รายการ)';
+  else if(p.entry && p.entry.name) t += ': ' + p.entry.name;
+  else if(p.ids) t += ' (' + p.ids.length + ' รายการ)';
+  return t;
+}
+function addIssue(obj){
+  issues.unshift(Object.assign({id:'is-'+uid(), at:Date.now()}, obj));
+  if(issues.length > 60) issues.length = 60;
+  issuesSave();
+}
+function issuesSave(){ localSet('issues', issues); renderIssuePill(); }
+function renderIssuePill(){
+  const el = document.getElementById('issue-pill');
+  if(!el) return;
+  if(!issues.length){ el.className = ''; el.innerHTML = ''; return; }
+  el.className = 'show';
+  el.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+    + '<span>มี ' + issues.length + ' เรื่องต้องตรวจ — แตะเพื่อดู</span>';
+}
+function lastUseText(lu){
+  if(!lu || !lu.ts) return '';
+  return ' เมื่อ ' + fmtCaseTime(lu.ts)
+    + (lu.hn && lu.hn !== '—' ? ' • HN ' + escapeHtml(lu.hn) : '')
+    + (lu.operation ? ' • ' + escapeHtml(lu.operation) : '');
+}
+function issueHtml(is){
+  const when = '<span class="lt">' + fmtCaseTime(is.at) + '</span>';
+  if(is.kind === 'use'){
+    const head = (is.hn && is.hn !== '—' ? 'เคส HN ' + escapeHtml(is.hn) : 'รายการตัดออกจากคลัง') + (is.operation ? ' • ' + escapeHtml(is.operation) : '');
+    const rows = (is.bad || []).map(b=>'<li><b>' + escapeHtml(b.name || '-') + '</b> (Lot ' + escapeHtml(b.lot || '-') + ') — '
+      + (b.status === 'short' ? ('ถูกบันทึกออกจากคลังไปแล้ว' + lastUseText(b.lastUse))
+                              : 'ไม่มีในฐานข้อมูลกลางแล้ว (ถูกลบ หรือยังไม่ได้ยิงรับเข้า)') + '</li>').join('');
+    return '<div class="issue-card"><div class="issue-head"><b>' + head + '</b>' + when + '</div>'
+      + '<div class="issue-sub">บันทึกได้ ' + (is.saved || 0) + ' ชิ้น · <b style="color:var(--expired);">ไม่ได้บันทึก ' + (is.bad || []).length + ' ชิ้น</b></div>'
+      + '<ul class="issue-list">' + rows + '</ul>'
+      + '<div class="issue-actions"><button class="btn btn-sm" data-issue-ack="' + is.id + '">รับทราบ</button></div></div>';
+  }
+  return '<div class="issue-card"><div class="issue-head"><b>' + escapeHtml(is.title || 'รายการที่บันทึกไม่ได้') + '</b>' + when + '</div>'
+    + '<div class="issue-sub" style="color:var(--expired);">หลังบ้านไม่รับ: ' + escapeHtml(is.error || '') + '</div>'
+    + '<div class="issue-actions">' + (is.job ? '<button class="btn btn-sm btn-outline-blue" data-issue-retry="' + is.id + '">ลองส่งใหม่</button>' : '')
+    + '<button class="btn btn-sm" data-issue-ack="' + is.id + '">รับทราบ</button></div></div>';
+}
+function renderIssueModal(){
+  const box = document.getElementById('issue-modal-content');
+  if(!box) return;
+  box.innerHTML = '<h2 style="margin-bottom:4px;">เรื่องที่ต้องตรวจ</h2>'
+    + '<p style="font-size:12.5px;color:var(--steel);margin:0 0 14px;">รายการด้านล่างนี้ <b>ไม่ได้ถูกบันทึก</b>ขึ้นฐานข้อมูลกลาง ตรวจสอบแล้วกด "รับทราบ"</p>'
+    + '<div class="hn-scroll">' + (issues.length ? issues.map(issueHtml).join('') : '<p style="font-size:13px;color:var(--steel);">ไม่มีเรื่องค้าง ✓</p>') + '</div>'
+    + '<div class="modal-actions">' + (issues.length > 1 ? '<button class="btn" id="btn-issue-ackall">รับทราบทั้งหมด</button>' : '')
+    + '<button class="btn btn-primary" id="btn-issue-close">ปิด</button></div>';
+}
+function showIssueModal(){
+  renderIssueModal();
+  const ov = document.getElementById('issue-overlay');
+  if(ov) ov.classList.add('active');
+}
+document.addEventListener('click', e=>{
+  if(e.target.closest('#issue-pill')){ showIssueModal(); return; }
+  const ov = document.getElementById('issue-overlay');
+  if(!ov || !ov.contains(e.target)) return;
+  if(e.target === ov || e.target.closest('#btn-issue-close')){ ov.classList.remove('active'); return; }
+  if(e.target.closest('#btn-issue-ackall')){ issues = []; issuesSave(); ov.classList.remove('active'); return; }
+  const ack = e.target.closest('[data-issue-ack]');
+  if(ack){
+    issues = issues.filter(x=>x.id !== ack.dataset.issueAck); issuesSave();
+    if(issues.length) renderIssueModal(); else ov.classList.remove('active');
+    return;
+  }
+  const rt = e.target.closest('[data-issue-retry]');
+  if(rt){
+    const is = issues.find(x=>x.id === rt.dataset.issueRetry);
+    issues = issues.filter(x=>x.id !== rt.dataset.issueRetry); issuesSave();
+    if(issues.length) renderIssueModal(); else ov.classList.remove('active');
+    if(is && is.job) outboxEnqueue(is.job.action, is.job.payload, is.job.meta);
+  }
+});
+
+window.addEventListener('online', ()=>{ if(outbox.length){ outbox.forEach(j=>j.tries=0); outboxSave(); outboxNextTryAt = 0; drainOutbox(); } else if(appUnlocked) syncNow(); });
 window.addEventListener('beforeunload', (e)=>{
   if(outbox.length){ e.preventDefault(); e.returnValue = ''; return ''; }
 });
 
 /* ----- คำสั่งรายการเดียว (ต่อคิวแล้วคืนค่าทันที) ----- */
 function apiAddItem(item){ return outboxEnqueue('addItem', {item}); }
-function apiUpdateItem(item){ return outboxEnqueue('updateItem', {item}); }
+/* baseQty = จำนวนที่เห็นตอนเปิดหน้าแก้ไข — หลังบ้านจะปรับตาม "ส่วนต่าง" ถ้าเครื่องอื่นตัดสต๊อกไประหว่างนั้น */
+function apiUpdateItem(item, baseQty){ return outboxEnqueue('updateItem', (typeof baseQty === 'number') ? {item, baseQty} : {item}); }
 function apiDeleteItem(id){ return outboxEnqueue('deleteItem', {id}); }
-/* บันทึกการใช้ 1 เคส — ตัดสต๊อกและลงประวัติที่เซิร์ฟเวอร์ในคราวเดียว */
-function apiUseCase(caseObj){ return outboxEnqueue('useCase', caseObj); }
+function apiDeleteItems(ids){
+  for(let i=0;i<ids.length;i+=200) outboxEnqueue('deleteItems', {ids: ids.slice(i, i+200)});
+  return true;
+}
+function newCaseId(){ return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+/* บันทึกการใช้ / ตัดออก 1 เคส
+   c     = {hn, operation, department, notes, ts (วัน-เวลาที่ใช้จริง), source}
+   picks = [{item, count, pass}]
+   หน้าจออัปเดตทันที แล้วเข้าคิวส่ง — id ของประวัติตรงกับที่หลังบ้านจะสร้าง ตอนซิงก์จึงไม่ซ้ำ
+   หลังบ้านตัดสต๊อก + ลงประวัติในคราวเดียว และตอบผลรายชิ้นกลับมา                              */
+function recordUse(c, picks){
+  const caseId = newCaseId();
+  const recTs = Date.now();
+  const src = c.source || 'usage-module';
+  picks.forEach((p, j)=>{
+    p.item.qty -= p.count;
+    for(let n=0;n<p.count;n++){
+      logs.unshift({id:'lg-'+caseId+'-'+j+'-'+n, itemId:p.item.id, name:p.item.name, code:p.item.code, lot:p.item.lot||'',
+                    sterileDate:p.item.sterileDate||'', expiry:p.item.expiry||'', ts:c.ts, recTs, caseId,
+                    source:src, hn:c.hn, operation:c.operation, department:c.department||'', notes:c.notes||'', pass:p.pass});
+    }
+  });
+  outboxEnqueue('useItems',
+    {caseId, hn:c.hn, operation:c.operation, department:c.department||'', notes:c.notes||'', ts:c.ts, source:src,
+     items: picks.map(p=>({itemId:p.item.id, count:p.count, pass:p.pass}))},
+    {labels: picks.map(p=>({name:p.item.name, lot:p.item.lot||''}))});
+  return caseId;
+}
 function saveCatalogEntry(entry){ return outboxEnqueue('setCatalog', {entry}); }
 function deleteCatalogEntry(code){ return outboxEnqueue('deleteCatalog', {code}); }
 async function saveSetting(key, value){
@@ -1518,31 +1912,44 @@ async function saveSetting(key, value){
   if(r.ok) cacheAll();
   return r.ok;
 }
+/* จำอายุการเก็บตามชื่อ — ส่งเฉพาะชื่อที่เปลี่ยน สองเครื่องตั้งพร้อมกันจึงไม่ทับกัน */
+function saveShelfMemory(name, days){
+  return outboxEnqueue('mergeSetting', {key:'item-shelf-memory', field:name, value:days});
+}
 /* เพิ่มชื่อการผ่าตัด/แผนกใหม่ทีละรายการ (ส่งขึ้นไปแค่คำเดียว) */
 function addDirEntry(kind, value){
   if(!value) return true;
   return outboxEnqueue('addDirEntry', {kind, value});
 }
 
+/* ---------- ซิงก์กับเครื่องอื่นเป็นระยะ ----------
+   กำลังใช้งานอยู่ = ทุก 10 วินาที · เปิดทิ้งไว้ = ทุก 30 วินาที · พับจอ/สลับแอป = หยุด (กลับมาแล้วซิงก์ทันที) */
 let appUnlocked = false;
-let pollInFlight = false;
-setInterval(async ()=>{
-  if(!APPS_SCRIPT_URL) return;
-  if(!appUnlocked) return;
-  if(pollInFlight) return;
-  if(document.querySelector('.overlay.active')) return;   // ไม่ขัดจังหวะตอนเปิดหน้าต่าง
-  if(outboxPending()){ drainOutbox(); return; }           // มีของค้างส่ง → ส่งของก่อน อย่าเพิ่งดึงมาทับ
-  pollInFlight = true;
-  try{
-    const r = await apiCall('rev');                       // เบามาก แค่ตัวเลขเดียว
-    if(r.ok){
-      if(!apiOnline){ apiOnline = true; setSyncStatus('ok'); }
-      if(r.data && r.data.rev !== lastRev) await loadData();   // ดึงใหม่เฉพาะตอนมีคนแก้
-    }else{
-      apiOnline = false; setSyncStatus('offline');
-    }
-  } finally { pollInFlight = false; }
-}, 30000);
+let lastActivityAt = Date.now();
+['pointerdown','keydown','touchstart'].forEach(ev=>{
+  document.addEventListener(ev, ()=>{ lastActivityAt = Date.now(); }, {passive:true, capture:true});
+});
+setInterval(()=>{
+  if(!APPS_SCRIPT_URL || !appUnlocked || document.hidden) return;
+  if(outboxPending()){ if(Date.now() >= outboxNextTryAt) drainOutbox(); return; }   // มีของค้างส่ง → ส่งของก่อน อย่าเพิ่งดึงมาทับ
+  const now = Date.now();
+  const active = (now - lastActivityAt) < 180000;
+  const every = (serverApi >= 3 && active) ? 10000 : 30000;
+  if(now - lastSyncAt < every) return;
+  const modalOpen = !!document.querySelector('.overlay.active');
+  if(modalOpen && now - lastSyncAt < 60000) return;        // ไม่ขัดจังหวะตอนเปิดหน้าต่าง (แต่ไม่ปล่อยเกิน 1 นาที)
+  if(serverApi >= 3 && !modalOpen && lastFullLoadAt && now - lastFullLoadAt > 30*60000){ loadData(true); return; }   // ทุกครึ่งชั่วโมงโหลดทั้งชุดหนึ่งครั้ง กันข้อมูลเพี้ยนสะสม
+  syncNow();
+}, 3000);
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden || !appUnlocked) return;
+  lastActivityAt = Date.now();
+  if(outboxPending()) drainOutbox(); else syncNow();
+});
+window.addEventListener('focus', ()=>{
+  if(!appUnlocked || Date.now() - lastSyncAt < 4000) return;
+  if(outboxPending()) drainOutbox(); else syncNow();
+});
 
 /* ---------- NAV ---------- */
 const VIEW_TITLES = {dashboard:'ภาพรวม', inventory:'คลังสต๊อก', print:'พิมพ์สติกเกอร์', scan:'สแกนรับเข้า', usage:'ประวัติการใช้', patient:'ประวัติการใช้กับผู้ป่วย', standards:'ตรวจมาตรฐาน', reports:'รายงาน'};
@@ -1619,21 +2026,22 @@ function emptyState(text, sub){
 
 /* ---------- RENDER: DASHBOARD ---------- */
 function renderDashboard(){
-  const ok = items.filter(i=>statusOf(i)==='ok').length;
-  const soon = items.filter(i=>statusOf(i)==='soon').length;
-  const expired = items.filter(i=>statusOf(i)==='expired').length;
-  document.getElementById('stat-total').textContent = items.length;
+  const S = stockItems();          // นับเฉพาะของที่ยังเหลือในคลัง
+  const ok = S.filter(i=>statusOf(i)==='ok').length;
+  const soon = S.filter(i=>statusOf(i)==='soon').length;
+  const expired = S.filter(i=>statusOf(i)==='expired').length;
+  document.getElementById('stat-total').textContent = S.length;
   document.getElementById('stat-ok').textContent = ok;
   document.getElementById('stat-soon').textContent = soon;
   document.getElementById('stat-expired').textContent = expired;
 
-  const urgent = items.filter(i=>statusOf(i)!=='ok').sort((a,b)=>daysUntil(a.expiry)-daysUntil(b.expiry)).slice(0,6);
+  const urgent = S.filter(i=>statusOf(i)!=='ok').sort((a,b)=>daysUntil(a.expiry)-daysUntil(b.expiry)).slice(0,6);
   document.getElementById('urgent-list').innerHTML = urgent.length ? urgent.map(i=>trayCard(i)).join('') : emptyState('ไม่มีรายการเร่งด่วน','ทุกชุดอยู่ในเกณฑ์ปกติ ✓');
 
-  const recent = [...items].sort((a,b)=>b.createdAt-a.createdAt).slice(0,6);
+  const recent = [...S].sort((a,b)=>b.createdAt-a.createdAt).slice(0,6);
   document.getElementById('recent-list').innerHTML = recent.length ? recent.map(i=>trayCard(i)).join('') : emptyState('ยังไม่มีข้อมูลในคลัง','กดปุ่ม “เพิ่มชุด/อุปกรณ์” เพื่อเริ่มต้น');
 
-  const failCount = items.filter(i=>!standardPass(i)).length;
+  const failCount = S.filter(i=>!standardPass(i)).length;
   const badge = document.getElementById('badge-fail');
   if(failCount>0){ badge.style.display='inline-block'; badge.textContent = failCount; } else { badge.style.display='none'; }
 }
@@ -1679,15 +2087,127 @@ function groupCard(name, groupItems){
 }
 function renderInventory(){
   const q = document.getElementById('global-search').value.trim().toLowerCase();
-  const matched = items.filter(i=>itemMatchesFilter(i, q));
+  const stock = stockItems();                              // เฉพาะของที่ยังเหลือ — ซองที่ใช้ไปแล้วไม่นับเป็นล็อตในคลัง
+  const matched = stock.filter(i=>itemMatchesFilter(i, q));
   // group by name
   const groups = {};
   matched.forEach(i=>{ (groups[i.name] = groups[i.name] || []).push(i); });
   const names = Object.keys(groups).sort((a,b)=>a.localeCompare(b,'th'));
-  document.getElementById('inventory-list').innerHTML = names.length
-    ? names.map(n=>groupCard(n, groups[n])).join('')
+  // ชื่อที่ของหมดคลังแล้ว — แสดงต่อท้ายตอนดู "ทั้งหมด" จะได้เห็นว่าอะไรขาด
+  let outHtml = '';
+  if(invFilter === 'all'){
+    const have = new Set(stock.map(i=>i.name));
+    const outNames = Array.from(new Set([...(zeroNames || []), ...items.filter(i=>!(i.qty > 0)).map(i=>i.name)]))
+      .filter(n=>n && !have.has(n) && (!q || n.toLowerCase().includes(q)))
+      .sort((a,b)=>a.localeCompare(b,'th'));
+    outHtml = outNames.map(zeroCard).join('');
+  }
+  document.getElementById('inventory-list').innerHTML = (names.length || outHtml)
+    ? names.map(n=>groupCard(n, groups[n])).join('') + outHtml
     : emptyState('ไม่พบรายการ','ลองเปลี่ยนตัวกรองหรือคำค้นหา');
+  renderBulkBar(stock);
 }
+function zeroCard(name){
+  return `
+  <div class="tray-card" style="opacity:.62;">
+    <div class="indicator-strip" style="background:#C3D2D9;"></div>
+    <div class="tray-body">
+      <div class="tray-top">
+        <div>
+          <div class="tray-name">${escapeHtml(name)}</div>
+          <div class="tray-code">ไม่มีของเหลือในคลัง</div>
+        </div>
+        <span class="status-pill" style="background:#EEF2F4;color:#5B6B73;">หมด</span>
+      </div>
+      <div class="tray-meta"><span></span><span class="qty-tag" style="font-size:14px;">คงเหลือรวม 0 ชิ้น</span></div>
+    </div>
+  </div>`;
+}
+
+/* ---------- ล้างของหมดอายุทั้งหมดในครั้งเดียว ---------- */
+function renderBulkBar(stock){
+  const bar = document.getElementById('inv-bulk-bar');
+  if(!bar) return;
+  const n = (stock || stockItems()).filter(i=>statusOf(i) === 'expired').reduce((s,i)=>s + (i.qty || 0), 0);
+  if(!n){ bar.innerHTML = ''; bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  bar.innerHTML = '<span>มีของ<b>หมดอายุ</b>ที่ยังนับว่าอยู่ในคลัง <b>' + n + '</b> ชิ้น</span>'
+    + '<button type="button" class="btn btn-sm" id="btn-bulk-expired">ล้างของหมดอายุ…</button>';
+}
+let bulkStep = '';
+function openBulkExpired(){
+  bulkStep = '';
+  renderBulkExpired();
+  document.getElementById('bulk-overlay').classList.add('active');
+}
+function renderBulkExpired(){
+  const box = document.getElementById('bulk-modal-content');
+  const list = stockItems().filter(i=>statusOf(i) === 'expired');
+  const pieces = list.reduce((s,i)=>s + (i.qty || 0), 0);
+  const byName = {};
+  list.forEach(i=>{ byName[i.name] = (byName[i.name] || 0) + (i.qty || 0); });
+  const names = Object.entries(byName).sort((a,b)=>b[1]-a[1]);
+  const top = names.slice(0, 8).map(([n,c])=>'<div class="bulk-row"><span>' + escapeHtml(n) + '</span><b>' + c + '</b></div>').join('')
+    + (names.length > 8 ? '<div class="bulk-row" style="color:var(--steel);"><span>และอีก ' + (names.length - 8) + ' ชื่อ</span><b>' + names.slice(8).reduce((s,x)=>s + x[1], 0) + '</b></div>' : '');
+  let actions;
+  if(!list.length){
+    actions = '<button class="btn btn-primary" data-bulk="close">ปิด</button>';
+  }else if(bulkStep){
+    const label = bulkStep === 'delete' ? ('ยืนยัน: ลบทิ้ง ' + pieces + ' ชิ้น (ไม่ลงรายงาน)') : ('ยืนยัน: ตัดออกเป็น "หมดอายุ" ' + pieces + ' ชิ้น');
+    actions = '<button class="btn" data-bulk="back">ย้อนกลับ</button><button class="btn btn-danger-solid" data-bulk="go">' + label + '</button>';
+  }else{
+    actions = '<button class="btn" data-bulk="close">ยกเลิก</button>'
+      + '<button class="btn" data-bulk="pick-delete">ลบทิ้ง ไม่ลงรายงาน</button>'
+      + '<button class="btn btn-primary" data-bulk="pick-writeoff">ตัดออกเป็น "หมดอายุ"</button>';
+  }
+  box.innerHTML = '<h2 style="margin-bottom:6px;">ล้างของหมดอายุออกจากคลัง</h2>'
+    + (list.length
+      ? '<p style="font-size:13px;margin:0 0 10px;">ของที่เลยวันหมดอายุและยังนับว่าอยู่ในคลัง: <b>' + pieces + ' ชิ้น</b> (' + names.length + ' ชื่อ)</p>'
+        + '<div class="bulk-list">' + top + '</div>'
+        + '<div class="bulk-note"><b>ตัดออกเป็น "หมดอายุ"</b> — ลงประวัติ และนับในรายงานว่าเป็นของหมดอายุ<br>'
+        + '<b>ลบทิ้ง ไม่ลงรายงาน</b> — ใช้เมื่อของพวกนี้ถูกใช้ไปแล้วแต่ไม่ได้ยิงออก จะได้ไม่ไปเพิ่มยอดของหมดอายุในรายงาน<br>'
+        + '<span style="color:var(--expired);font-weight:700;">ทำแล้วย้อนกลับไม่ได้</span></div>'
+      : '<p style="font-size:13px;color:var(--steel);">ไม่มีของหมดอายุค้างในคลังแล้ว ✓</p>')
+    + '<div class="modal-actions" style="flex-wrap:wrap;">' + actions + '</div>';
+}
+function bulkClearExpired(mode){
+  const list = stockItems().filter(i=>statusOf(i) === 'expired');
+  if(!list.length) return 0;
+  const pieces = list.reduce((s,i)=>s + (i.qty || 0), 0);
+  if(mode === 'delete'){
+    const ids = new Set(list.map(i=>i.id));
+    items = items.filter(i=>!ids.has(i.id));
+    apiDeleteItems(Array.from(ids));
+  }else{
+    const ts = Date.now();
+    for(let i=0;i<list.length;i+=60){                       // ส่งเป็นชุดละ 60 ชิ้น
+      recordUse({hn:'—', operation:'ตัดออกจากคลัง: หมดอายุ', department:OUT_KINDS.expired.dept, notes:'ล้างของหมดอายุทั้งหมด', ts: ts + i, source:'expired'},
+                list.slice(i, i+60).map(it=>({item:it, count:it.qty, pass:false})));
+    }
+  }
+  cacheAll();
+  renderAll();
+  return pieces;
+}
+document.addEventListener('click', e=>{
+  if(e.target.closest('#btn-bulk-expired')){ openBulkExpired(); return; }
+  const ov = document.getElementById('bulk-overlay');
+  if(!ov || !ov.contains(e.target)) return;
+  if(e.target === ov){ ov.classList.remove('active'); return; }
+  const b = e.target.closest('[data-bulk]');
+  if(!b) return;
+  const act = b.dataset.bulk;
+  if(act === 'close') ov.classList.remove('active');
+  else if(act === 'back'){ bulkStep = ''; renderBulkExpired(); }
+  else if(act === 'pick-delete'){ bulkStep = 'delete'; renderBulkExpired(); }
+  else if(act === 'pick-writeoff'){ bulkStep = 'writeoff'; renderBulkExpired(); }
+  else if(act === 'go'){
+    const mode = bulkStep;
+    const n = bulkClearExpired(mode);
+    ov.classList.remove('active');
+    showToast(mode === 'delete' ? ('ลบของหมดอายุ ' + n + ' ชิ้นแล้ว (ไม่ลงรายงาน)') : ('ตัดออกเป็นหมดอายุ ' + n + ' ชิ้นแล้ว'), true);
+  }
+});
 let groupModalName = null;
 function closeGroupModal(){
   const ov = document.getElementById('detail-overlay');
@@ -1698,7 +2218,7 @@ function closeGroupModal(){
 function openGroupModal(name){
   groupModalName = name;
   const q = document.getElementById('global-search').value.trim().toLowerCase();
-  const groupItems = items.filter(i=>i.name===name && itemMatchesFilter(i,q))
+  const groupItems = stockItems().filter(i=>i.name===name && itemMatchesFilter(i,q))
     .sort((a,b)=>daysUntil(a.expiry)-daysUntil(b.expiry)); // FEFO inside group
   const total = groupItems.reduce((s,i)=>s+(i.qty||0),0);
   const html = `
@@ -1855,25 +2375,13 @@ document.getElementById('btn-confirm-sendout').addEventListener('click', async (
 function sendOutItem(item, kind, count, reason, note){
   const cfg = OUT_KINDS[kind];
   if(!cfg) return;
-  const ts = Date.now();
   const fullNote = reason + (note ? (' — ' + note) : '');
   const pass = standardPass(item);
   // ใส่เหตุผลไว้ในชื่อรายการด้วย จะได้อ่านออกในประวัติและ CSV
   // (ขึ้นต้นด้วย "ตัดออกจากคลัง" เหมือนเดิม ระบบจึงยังจำแนกประเภทได้ถูก)
   const opText = (kind === 'expired') ? ('ตัดออกจากคลัง: ' + reason) : cfg.op;
-
-  apiUseCase({                                   // ตัดสต๊อก + ลงประวัติที่เซิร์ฟเวอร์ (เข้าคิวส่ง ไม่ต้องรอ)
-    hn:'—', operation: opText, department: cfg.dept, notes: fullNote, ts,
-    items:[{itemId:item.id, count, pass}]
-  });
-
-  item.qty -= count;
-  for(let n=0; n<count; n++){
-    logs.unshift({id:'lg-'+uid(), itemId:item.id, name:item.name, code:item.code, lot:item.lot||'',
-                  sterileDate:item.sterileDate||'', expiry:item.expiry||'', ts,
-                  source:kind, hn:'—', operation:opText, department:cfg.dept, notes:fullNote, pass});
-  }
-  cacheAll();
+  recordUse({hn:'—', operation: opText, department: cfg.dept, notes: fullNote, ts: Date.now(), source: kind},
+            [{item, count, pass}]);                 // ตัดสต๊อก + ลงประวัติ (เข้าคิวส่ง ไม่ต้องรอ)
   renderAll();
   showToast(kind === 'resterile'
     ? `ส่ง Re-sterile: ${item.name} ${count} ชิ้น — บันทึกไว้ในรายงานแล้ว`
@@ -1901,15 +2409,8 @@ document.getElementById('btn-confirm-quickuse').addEventListener('click', async 
 });
 async function useOne(item, source, operation, hn){
   if(item.qty<=0){ showToast('ชุดนี้หมดสต๊อกแล้ว'); return; }
-  const ok = await apiUseCase({
-    hn: hn||'', operation: operation||'', department:'', notes:'', ts: Date.now(),
-    items:[{itemId:item.id, count:1, pass: standardPass(item)}]
-  });
-  if(!ok) return;
-  item.qty -= 1;
-  logs.unshift({id:'lg-'+uid(), itemId:item.id, name:item.name, code:item.code, lot:item.lot||'',
-                expiry:item.expiry||'', ts:Date.now(), source:'usage-module',
-                operation: operation||'', hn: hn||'', department:'', notes:'', pass: standardPass(item)});
+  recordUse({hn: hn||'', operation: operation||'', department:'', notes:'', ts: Date.now(), source:'usage-module'},
+            [{item, count:1, pass: standardPass(item)}]);
   renderAll();
   showToast(`บันทึกการใช้งาน: ${item.name}`, true);
 }
@@ -1940,6 +2441,7 @@ function openAddModal(){
 }
 function openEditModal(item){
   editingId = item.id;
+  editingBaseQty = item.qty;                   // จำนวนที่เห็นตอนเปิดหน้าแก้ไข
   document.getElementById('modal-title').textContent = 'แก้ไขข้อมูลชุด/อุปกรณ์';
   document.getElementById('f-name').value=item.name;
   document.getElementById('f-lot').value=item.lot||'';
@@ -2001,7 +2503,7 @@ document.getElementById('btn-save-item').addEventListener('click', async ()=>{
   if(editingId){
     const item = items.find(i=>i.id===editingId);
     const merged = Object.assign({}, item, data);
-    ok = await apiUpdateItem(merged);
+    ok = await apiUpdateItem(merged, editingBaseQty);
     if(ok){ Object.assign(item, data); showToast('บันทึกการแก้ไขแล้ว', true); }
   }else{
     const fresh = Object.assign({id:uid(), code:genCode(), createdAt:Date.now()}, data);
@@ -2073,7 +2575,8 @@ document.getElementById('detail-overlay').addEventListener('click', e=>{ if(e.ta
 
 /* ---------- PRINT VIEW ---------- */
 function renderPrintView(){
-  document.getElementById('print-picker').innerHTML = items.length ? items.map(i=>`
+  const P = stockItems();
+  document.getElementById('print-picker').innerHTML = P.length ? P.map(i=>`
     <label class="pick-card">
       <input type="checkbox" data-id="${i.id}" ${selectedForPrint.has(i.id)?'checked':''}>
       <div><div class="pn">${escapeHtml(i.name)}</div><div class="pc">${i.code}</div></div>
@@ -2087,7 +2590,7 @@ function renderPrintView(){
   renderLabelPreview();
 }
 document.getElementById('btn-select-all-print').addEventListener('click', ()=>{
-  selectedForPrint = new Set(items.map(i=>i.id));
+  selectedForPrint = new Set(stockItems().map(i=>i.id));
   renderPrintView();
 });
 function stickerHTML(item, idx){
@@ -2301,7 +2804,7 @@ function renderUsageItemList(){
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div>
             <div>${escapeHtml(ci.name)}</div>
-            <div style="font-size:10.5px;color:var(--steel);font-family:'IBM Plex Mono',monospace;margin-top:1px;">Lot ${escapeHtml(ci.lot||'-')} &middot; หมดอายุ ${fmtDate(ci.expiry)}</div>
+            <div style="font-size:10.5px;color:var(--steel);font-family:'IBM Plex Mono',monospace;margin-top:1px;">Lot ${escapeHtml(ci.lot||'-')} &middot; หมดอายุ ${fmtDate(ci.expiry)}</div>${usageGoneNote(ci)}
           </div>
           <span style="display:flex;align-items:center;gap:8px;">
             <span class="qty-tag">x${ci.count}</span>
@@ -2317,13 +2820,18 @@ function renderUsageItemList(){
       b.addEventListener('click', ()=>{ currentUsageCase.items.splice(parseInt(b.dataset.removeUsage,10),1); renderUsageItemList(); });
     });
     el.querySelectorAll('[data-pass-usage]').forEach(cb=>{
-      cb.addEventListener('change', ()=>{ currentUsageCase.items[parseInt(cb.dataset.passUsage,10)].pass = cb.checked; });
+      cb.addEventListener('change', ()=>{ const ci = currentUsageCase.items[parseInt(cb.dataset.passUsage,10)]; ci.pass = cb.checked; ci.passTouched = true; });
     });
   }
   const saveBtn = document.getElementById('btn-save-usage');
   if(saveBtn) saveBtn.disabled = currentUsageCase.items.length===0;
 }
 
+function usageGoneNote(ci){
+  const it = items.find(i=>i.id === ci.itemId);
+  if(it && it.qty >= ci.count) return '';
+  return '<div style="font-size:11px;color:var(--expired);font-weight:700;margin-top:3px;">ถูกใช้ไปแล้วจากเครื่องอื่น — กดกากบาทเพื่อเอาออกจากเคส</div>';
+}
 function addItemToUsageCase(item, notFoundCode){
   const fb = document.getElementById('u-scan-feedback');
   if(!item){
@@ -2341,7 +2849,7 @@ function addItemToUsageCase(item, notFoundCode){
   }else{
     currentUsageCase.items.push({
       itemId:item.id, name:item.name, code:item.code, lot:item.lot||'', sterileDate:item.sterileDate||'', expiry:item.expiry||'',
-      count:1, pass: standardPass(item)
+      count:1, pass: standardPassAt(item, getUseDate())
     });
   }
   fb.innerHTML = `<div class="catalog-hit" style="margin-top:8px;">
@@ -2358,7 +2866,7 @@ function buildUsageCases(sourceLogs){
   (sourceLogs||[]).forEach(l=>{
     const key = l.ts + '|' + (l.hn||'');
     if(!seen.has(key)){
-      seen.set(key, {ts:l.ts, hn:l.hn||'', operation:l.operation||'', department:l.department||'', notes:l.notes||'', items:[]});
+      seen.set(key, {ts:l.ts, recTs:l.recTs||0, hn:l.hn||'', operation:l.operation||'', department:l.department||'', notes:l.notes||'', items:[]});
       groups.push(seen.get(key));
     }
     seen.get(key).items.push(l);
@@ -2368,6 +2876,23 @@ function buildUsageCases(sourceLogs){
 function fmtCaseTime(ts){
   const dt = new Date(ts);
   return dt.toLocaleString('th-TH', {hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit',year:'2-digit'});
+}
+/* เคสที่ "ยิงบันทึกคนละวันกับวันที่ใช้จริง" (ts = วันที่ใช้จริง · recTs = วันที่ยิงบันทึก) */
+function isBackdated(g){
+  const ts = Number(g && g.ts), rec = Number(g && g.recTs);
+  return !!(ts && rec && monthDayIso(ts) !== monthDayIso(rec));
+}
+function caseTimeHtml(g){
+  if(!isBackdated(g)) return fmtCaseTime(g.ts);
+  return fmtDate(monthDayIso(Number(g.ts))) + ' <span class="hist-kind-tag backdated" title="ยิงบันทึกเมื่อ ' + fmtCaseTime(Number(g.recTs)) + '">ลงย้อนหลัง</span>';
+}
+function caseTimeText(g){
+  if(!isBackdated(g)) return fmtCaseTime(g.ts);
+  return fmtDate(monthDayIso(Number(g.ts))) + ' (ลงย้อนหลัง บันทึกเมื่อ ' + fmtCaseTime(Number(g.recTs)) + ')';
+}
+function retainNoteHtml(){
+  if(serverApi < 3) return '';
+  return '<br><span style="color:var(--steel);">ระบบเก็บประวัติ ' + retainDays + ' วันหลังวันที่ใช้ แล้วลบรายละเอียดอัตโนมัติ (ยอดรวมรายเดือนยังดูได้ในหน้ารายงาน)</span>';
 }
 /* นับจำนวนชิ้นที่ไม่ผ่านเกณฑ์ */
 function failCountOf(list){ return list.filter(i=>i.pass===false).length; }
@@ -2421,7 +2946,7 @@ function renderHistSummary(groups){
   box.innerHTML =
     'มีข้อมูลในเครื่องตั้งแต่ <b>' + fmtDate(monthDayIso(oldest)) + '</b> ถึง <b>' + fmtDate(monthDayIso(newest)) + '</b> (รวม ' + logs.length + ' ชิ้น)<br>' +
     'ตามที่กรองอยู่: <b>' + groups.length + '</b> เคส / <b>' + pieces + '</b> ชิ้น — ' +
-    'ใช้กับผู้ป่วย ' + kinds.usage + ' · Re-sterile ' + kinds.resterile + ' · หมดอายุ/ตัดออก ' + kinds.expired;
+    'ใช้กับผู้ป่วย ' + kinds.usage + ' · Re-sterile ' + kinds.resterile + ' · หมดอายุ/ตัดออก ' + kinds.expired + retainNoteHtml();
 }
 
 function renderUsageHistory(){
@@ -2455,7 +2980,7 @@ function renderUsageHistory(){
       <div style="display:flex;justify-content:space-between;gap:8px;">
         <span><b>${g.hn && g.hn !== '—' ? ('HN '+escapeHtml(g.hn)) : '-'}</b>${g.operation?(' • '+escapeHtml(g.operation)):''}${histTag(g)}</span>
         <span style="display:flex;align-items:center;gap:6px;">
-          <span class="lt">${fmtCaseTime(g.ts)}</span>
+          <span class="lt">${caseTimeHtml(g)}</span>
           <svg class="row-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </span>
       </div>
@@ -2511,7 +3036,7 @@ function histTag(g){
     const KIND_TH = {usage:'ใช้กับผู้ป่วย', resterile:'ส่ง Re-sterile', expired:'หมดอายุ/ตัดออก'};
     groups.forEach(g=>{
       g.items.forEach(i=>{
-        out += q(fmtCaseTime(g.ts)) + ',' + q(KIND_TH[logKind(i)]) + ',' + q(g.hn) + ',' + q(g.operation) + ',' +
+        out += q(caseTimeText(g)) + ',' + q(KIND_TH[logKind(i)]) + ',' + q(g.hn) + ',' + q(g.operation) + ',' +
                q(g.department) + ',' + q(i.name) + ',' + q(i.code) + ',' + q(i.lot) + ',' +
                q(fmtDate(i.expiry)) + ',' + q(i.pass === false ? 'ไม่ผ่าน' : 'ผ่าน') + ',' + q(g.notes) + '\n';
       });
@@ -2561,7 +3086,7 @@ function renderHnHistoryModal(){
               <b>${escapeHtml(c.operation||'ไม่ระบุการผ่าตัด')}</b>
               <div class="hn-case-sub">${c.department?escapeHtml(c.department)+' • ':''}${c.items.length} ชิ้น${fails?` • <span style="color:var(--expired);font-weight:700;">${fails} ไม่ผ่านเกณฑ์</span>`:''}</div>
             </div>
-            <span class="hn-case-time">${fmtCaseTime(c.ts)}</span>
+            <span class="hn-case-time">${caseTimeHtml(c)}</span>
           </div>
           ${c.notes?`<div style="font-size:11.5px;color:var(--soon);margin-top:6px;">หมายเหตุ: ${escapeHtml(c.notes)}</div>`:''}
           <table class="hn-item-table">
@@ -2616,21 +3141,26 @@ async function runSelfTest(){
     return;
   }
   const ver = (ping.data && ping.data.version) || '(ไม่ระบุ)';
+  const apiLv = (ping.data && ping.data.api) || 2;
+  setServerApi(apiLv >= 3 ? 3 : 2);
   push('   ✓ ติดต่อได้ใน ' + (Date.now()-t0) + ' มิลลิวินาที');
-  push('   หลังบ้านเวอร์ชัน : ' + ver);
-  if(ver !== 'v2'){
-    push('   ✗ หลังบ้านยังเป็นตัวเก่า — ต้องติดตั้ง Code_v2.gs แล้ว Deploy ทับเวอร์ชันเดิม');
-    return;
+  if(apiLv >= 3){
+    push('   หลังบ้านเวอร์ชัน : v3 (หลายเครื่อง · เก็บประวัติ ' + ((ping.data && ping.data.retainDays) || 90) + ' วันหลังวันที่ใช้)');
+    push('   ลบข้อมูลเกินกำหนดล่าสุด : ' + ((ping.data && ping.data.purgeDay) || 'ยังไม่เคย'));
+  }else{
+    push('   หลังบ้านเวอร์ชัน : ' + ver);
+    push('   ⚠ หลังบ้านยังเป็นรุ่นเก่า — หน้าเว็บนี้ใช้งานต่อได้ แต่ต้องวาง Code.gs v3 แล้ว Deploy เวอร์ชันใหม่');
+    push('     จึงจะได้ระบบหลายเครื่อง / ยิงย้อนหลัง / ลบอัตโนมัติ 90 วัน');
   }
   push('');
 
   push('[2/3] ดึงข้อมูลทั้งหมด...');
   const t1 = Date.now();
-  const all = await apiCall('loadAll');
+  const all = await apiCall('loadAll', {lean:1}, {timeout:70000});
   if(!all.ok){ push('   ✗ ดึงไม่สำเร็จ — ' + (all.error||'')); return; }
   const d = all.data || {};
   push('   ✓ ใช้เวลา ' + (Date.now()-t1) + ' มิลลิวินาที');
-  push('   ของในคลัง      : ' + (d.items||[]).length + ' รายการ');
+  push('   ของที่ยังเหลือในคลัง : ' + (d.items||[]).length + ' รายการ');
   push('   ประวัติการใช้   : ' + (d.logs||[]).length + ' รายการ');
   push('   รายการมาตรฐาน  : ' + (d.catalog||[]).length + ' รายการ');
   push('   เลขรุ่นข้อมูล   : ' + d.rev);
@@ -2649,7 +3179,9 @@ async function runSelfTest(){
   push('   ✓ เขียนและลบได้ปกติ (' + (Date.now()-t2) + ' มิลลิวินาที)');
   if(!del.ok) push('   ⚠ ลบรายการทดสอบไม่สำเร็จ — ลบเองในชีต ITEMS ได้ (id ' + probeId + ')');
   push('');
-  push('สรุป: ระบบปกติดี ✓  ไม่มีเพดานขนาดข้อมูลอีกแล้ว');
+  push('คิวรอส่งในเครื่องนี้ : ' + outbox.length + ' รายการ · เรื่องที่ต้องตรวจ : ' + issues.length);
+  push('');
+  push('สรุป: ระบบปกติดี ✓');
 }
 document.getElementById('btn-selftest').addEventListener('click', async ()=>{
   document.getElementById('selftest-out').textContent = 'กำลังตรวจสอบ... (ใช้เวลาประมาณ 10-20 วินาที)';
@@ -2751,24 +3283,141 @@ document.getElementById('scanchoice-overlay').addEventListener('click', e=>{
 document.getElementById('btn-u-find').addEventListener('click', ()=>{
   const code = document.getElementById('u-scan-code').value;
   if(!code.trim()){ showToast('กรุณากรอกรหัส'); return; }
-  const item = findByCode(code);
   document.getElementById('u-scan-code').value = '';
-  routeScannedItem(item, code);
+  handleUsageCode(code);
 });
 document.getElementById('u-scan-code').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('btn-u-find').click(); });
 
+/* ---------- วันที่ใช้จริง — ยิงย้อนหลังได้ (สติ๊กเกอร์มักถูกยิงหลังใช้ไปแล้ว 1 วัน) ---------- */
+const USE_DATE_MAX_BACK = 7;      // ย้อนหลังได้สูงสุดกี่วัน
+let useDateIso = '';              // '' = วันนี้
+let useDateSetAt = 0;
+let useDateMore = false;
+function isoAddDays(iso, n){ const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return _isoLocal(d); }
+function getUseDate(){
+  const today = todayStr();
+  // เลือกย้อนหลังค้างไว้เกิน 30 นาที หรือข้ามวันไปแล้ว → กลับเป็นวันนี้ กันลงผิดวันโดยไม่ตั้งใจ
+  if(useDateIso && (Date.now() - useDateSetAt > 30*60000 || useDateIso >= today || useDateIso < isoAddDays(today, -USE_DATE_MAX_BACK))) useDateIso = '';
+  return useDateIso || today;
+}
+/* วัน-เวลาที่ใช้จริง: วันนี้ = เวลาปัจจุบัน · ย้อนหลัง = วันที่เลือก ณ เวลาเดียวกันของวันนั้น */
+function useTsFor(dateIso){
+  const now = new Date();
+  if(!dateIso || dateIso === todayStr()) return now.getTime();
+  const d = new Date(dateIso + 'T00:00:00');
+  d.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+  return d.getTime();
+}
+function setUseDate(iso){
+  const today = todayStr();
+  if(!iso || iso === today) useDateIso = '';
+  else if(iso > today){ showToast('เลือกวันที่ในอนาคตไม่ได้'); useDateIso = ''; }
+  else if(iso < isoAddDays(today, -USE_DATE_MAX_BACK)){ showToast('ย้อนหลังได้ไม่เกิน ' + USE_DATE_MAX_BACK + ' วัน'); useDateIso = ''; }
+  else useDateIso = iso;
+  useDateSetAt = Date.now();
+  // ของที่ยังไม่หมดอายุ ณ วันที่ใช้จริง ถือว่าผ่านเกณฑ์ (เว้นแต่คนติ๊กแก้เอง)
+  currentUsageCase.items.forEach(ci=>{
+    if(ci.passTouched) return;
+    const it = items.find(i=>i.id === ci.itemId);
+    if(it) ci.pass = standardPassAt(it, getUseDate());
+  });
+  renderUseDate();
+  renderUsageItemList();
+}
+function shortThaiDate(iso){
+  const d = new Date(iso + 'T00:00:00');
+  return d.getDate() + ' ' + THAI_MONTHS_SHORT[d.getMonth()];
+}
+function renderUseDate(){
+  const box = document.getElementById('u-usedate-chips');
+  if(!box) return;
+  const today = todayStr(), cur = getUseDate();
+  const near = [[today,'วันนี้'], [isoAddDays(today,-1),'เมื่อวาน'], [isoAddDays(today,-2),'2 วันก่อน']];
+  const far = [];
+  for(let n=3;n<=USE_DATE_MAX_BACK;n++){ const iso = isoAddDays(today, -n); far.push([iso, shortThaiDate(iso)]); }
+  const curIsFar = far.some(o=>o[0] === cur);
+  const chip = o=>'<button type="button" class="chip ' + (o[0] === cur ? 'active' : '') + '" data-usedate="' + o[0] + '">' + o[1] + '</button>';
+  box.innerHTML = near.map(chip).join('')
+    + ((useDateMore || curIsFar) ? far.map(chip).join('') : '<button type="button" class="chip" data-usedate="more">วันอื่น…</button>');
+  const hint = document.getElementById('u-usedate-hint');
+  if(hint){
+    if(cur === today){ hint.className = 'usedate-hint'; hint.textContent = 'บันทึกเป็นการใช้ของวันนี้ (' + fmtDate(today) + ')'; }
+    else{ hint.className = 'usedate-hint back'; hint.textContent = 'กำลังบันทึกย้อนหลัง — วันที่ใช้จริง ' + fmtDate(cur) + ' (ประวัติถูกเก็บ ' + retainDays + ' วันนับจากวันที่ใช้จริง)'; }
+  }
+}
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-usedate]');
+  if(!b) return;
+  if(b.dataset.usedate === 'more'){ useDateMore = true; renderUseDate(); return; }
+  setUseDate(b.dataset.usedate);
+});
+setInterval(()=>{ if(currentView === 'usage' && useDateIso && getUseDate() === todayStr()) renderUseDate(); }, 60000);   // หมดเวลาค้างย้อนหลัง → กลับเป็นวันนี้บนหน้าจอด้วย
+
+/* ---------- ยิงแล้วหาในเครื่องไม่เจอ → ถามฐานข้อมูลกลางก่อนตอบ ----------
+   อีกเครื่องอาจเพิ่งยิงรับเข้า (ยังไม่ทันซิงก์มาถึงเครื่องนี้) หรือซองนี้ถูกเครื่องอื่นบันทึกใช้ไปแล้ว */
+let scanChain = Promise.resolve();
+function handleUsageCode(code){
+  scanChain = scanChain.then(()=>resolveAndRoute(code)).catch(()=>{});     // ยิงรัวๆ ก็ทำทีละรหัสตามลำดับ
+  return scanChain;
+}
+function showUsedFeedback(name, lot, lu){
+  const fb = document.getElementById('u-scan-feedback');
+  fb.innerHTML = '<div class="catalog-miss" style="margin-top:8px;border-color:var(--expired);background:var(--expired-pale);color:var(--expired);">'
+    + '<b>ซองนี้ถูกบันทึกออกจากคลังไปแล้ว</b><br>' + escapeHtml(name || '') + ' (Lot ' + escapeHtml(lot || '-') + ')' + lastUseText(lu) + '</div>';
+}
+async function resolveAndRoute(code){
+  code = String(code || '').trim();
+  if(!code) return;
+  const local = findByCode(code);
+  if(local && local.qty > 0){ routeScannedItem(local, code); return; }          // เจอในเครื่องและยังเหลือ → ไปต่อทันที
+  if(serverApi < 3){ routeScannedItem(local, code); return; }                    // หลังบ้านรุ่นเก่า → ทำแบบเดิม
+  const fb = document.getElementById('u-scan-feedback');
+  fb.innerHTML = '<div class="catalog-miss" style="margin-top:8px;">กำลังตรวจรหัส <span class="mono">' + escapeHtml(code) + '</span> กับฐานข้อมูลกลาง…</div>';
+  const r = await apiCall('lookup', {code}, {timeout:15000});
+  if(!r.ok){
+    if(local){ routeScannedItem(local, code); return; }
+    fb.innerHTML = '<div class="catalog-miss" style="margin-top:8px;">ไม่พบรหัสนี้ในเครื่องนี้: <span class="mono">' + escapeHtml(code) + '</span><br>'
+      + '<span style="font-size:11px;">ตอนนี้ติดต่อฐานข้อมูลกลางไม่ได้ จึงยังยืนยันไม่ได้ว่าเครื่องอื่นรับเข้าไว้หรือยัง — ยิงอีกครั้งเมื่อสัญญาณกลับมา</span></div>';
+    return;
+  }
+  const d = r.data || {};
+  let merged = false;
+  (d.items || []).forEach(raw=>{
+    const it = fixItem(raw); normalizeRecordDates([it]);
+    const idx = items.findIndex(i=>i.id === it.id);
+    if(idx >= 0){ if(!outboxPending()){ items[idx] = it; merged = true; } }       // มีของค้างส่ง → เชื่อข้อมูลในเครื่องไปก่อน
+    else if(it.qty > 0){ items.push(it); merged = true; }
+  });
+  if(merged){ cacheAll(); renderAll(); }
+  const fresh = findByCode(code);
+  if(fresh && fresh.qty > 0){ routeScannedItem(fresh, code); return; }           // อีกเครื่องเพิ่งรับเข้า → ใช้ได้เลย
+  const used = (d.items || [])[0];
+  if(used){ showUsedFeedback(used.name, used.lot, (d.lastUse || {})[used.id]); return; }
+  if((d.usedLogs || []).length){ const l = d.usedLogs[0]; showUsedFeedback(l.name, l.lot, l); return; }
+  fb.innerHTML = '<div class="catalog-miss" style="margin-top:8px;">ไม่พบรหัสนี้ในระบบ: <span class="mono">' + escapeHtml(code) + '</span><br>'
+    + '<span style="font-size:11px;">ตรวจกับฐานข้อมูลกลางแล้ว — ซองนี้ยังไม่เคยถูกยิงรับเข้า</span></div>';
+}
+
 let html5QrCodeUsage = null;
 let usageLastScan = { code: null, time: 0 };
+let usageIgnored = { code: null, time: 0 };
 function onUsageScanSuccess(decodedText){
   // มีหน้าต่างเปิดค้างอยู่ (เช่นกำลังเลือกปลายทาง) → ไม่รับการยิงซ้อน
-  if(document.querySelector('.overlay.active')) return;
   const now = Date.now();
+  const overlayOpen = !!document.querySelector('.overlay.active');
+  if(overlayOpen && decodedText !== usageLastScan.code){
+    if(decodedText !== usageIgnored.code || now - usageIgnored.time > 2000){
+      usageIgnored = {code: decodedText, time: now};
+      showToast('ยังไม่ได้รับรหัส ' + decodedText + ' — ปิดหน้าต่างที่เปิดอยู่ก่อน แล้วยิงใหม่');
+    }
+    return false;
+  }
+  if(overlayOpen) return;
   if(decodedText === usageLastScan.code && (now - usageLastScan.time) < 2000){
     return; // กันสแกนโค้ดเดิมซ้ำภายใน 2 วิ (กล้องอ่าน QR เดิมซ้ำทุกเฟรม)
   }
   usageLastScan = { code: decodedText, time: now };
-  const item = findByCode(decodedText);
-  routeScannedItem(item, decodedText);
+  handleUsageCode(decodedText);
 }
 async function startUsageScanner(){
   if(typeof Html5Qrcode === 'undefined'){ showToast('โหลดไลบรารีกล้องไม่สำเร็จ กรุณากรอกรหัสด้วยตนเอง'); return; }
@@ -2793,48 +3442,34 @@ async function stopUsageScanner(){
 document.getElementById('btn-usage-scan-start').addEventListener('click', startUsageScanner);
 document.getElementById('btn-usage-scan-stop').addEventListener('click', stopUsageScanner);
 
-document.getElementById('btn-save-usage').addEventListener('click', async ()=>{
+document.getElementById('btn-save-usage').addEventListener('click', ()=>{
   const hn = document.getElementById('u-hn').value.trim();
   const dept = document.getElementById('u-dept').value.trim();
   const op = document.getElementById('u-op').value.trim();
   const notes = document.getElementById('u-notes').value.trim();
   if(!hn || !op){ showToast('กรุณากรอก HN และการผ่าตัดก่อนบันทึก'); return; }
   if(!currentUsageCase.items.length){ showToast('ยังไม่ได้เพิ่มเครื่องมือ'); return; }
+  const picks = [];
   for(const ci of currentUsageCase.items){
     const item = items.find(i=>i.id===ci.itemId);
-    if(!item || item.qty < ci.count){ showToast(`สต๊อก ${ci.name} ไม่พอแล้ว กรุณาตรวจสอบอีกครั้ง`); return; }
-  }
-  const useBtn = document.getElementById('btn-save-usage');
-  const useBtnHtml = useBtn.innerHTML;
-  useBtn.disabled = true; useBtn.innerHTML = 'กำลังบันทึก...';
-
-  const ts = Date.now();
-  const ok = await apiUseCase({
-    hn, operation: op, department: dept, notes, ts,
-    items: currentUsageCase.items.map(ci=>({itemId:ci.itemId, count:ci.count, pass:ci.pass}))
-  });
-
-  useBtn.innerHTML = useBtnHtml;
-  if(!ok){ useBtn.disabled = false; return; }
-
-  // สำเร็จแล้วค่อยอัปเดตหน้าจอให้ตรงกับเซิร์ฟเวอร์
-  const savedCount = currentUsageCase.items.length;
-  currentUsageCase.items.forEach(ci=>{
-    const item = items.find(i=>i.id===ci.itemId);
-    if(!item) return;
-    item.qty -= ci.count;
-    for(let n=0;n<ci.count;n++){
-      logs.unshift({id:'lg-'+uid(), itemId:item.id, name:item.name, code:item.code, lot:item.lot||'',
-                    expiry:item.expiry||'', ts, source:'usage-module', hn, operation:op,
-                    department:dept, notes, pass: ci.pass});
+    if(!item || item.qty < ci.count){
+      renderUsageItemList();
+      showToast(`${ci.name} ถูกใช้ไปแล้วหรือคงเหลือไม่พอ — เอาออกจากเคสก่อนบันทึก`);
+      return;
     }
-  });
+    picks.push({item, count:ci.count, pass:ci.pass});
+  }
+  const usedDate = getUseDate();
+  const backdated = usedDate !== todayStr();
+  // หน้าจออัปเดตทันที แล้วเข้าคิวส่ง — หลังบ้านจะตอบผลรายชิ้นกลับมา ถ้ามีชิ้นไหนไม่ผ่านจะเด้งแจ้ง
+  recordUse({hn, operation:op, department:dept, notes, ts: useTsFor(usedDate), source:'usage-module'}, picks);
+  const savedCount = picks.length;
 
   if(op && !orDirectory.operations.includes(op)){ orDirectory.operations.unshift(op); addDirEntry('operations', op); }
   if(dept && !orDirectory.departments.includes(dept)){ orDirectory.departments.unshift(dept); addDirEntry('departments', dept); }
   cacheAll();
   populateOrSuggestions();
-  showToast(`บันทึกเคส HN ${hn} เรียบร้อย (${savedCount} รายการ)`, true);
+  showToast(`บันทึกเคส HN ${hn} แล้ว (${savedCount} รายการ)` + (backdated ? ` — วันที่ใช้ ${fmtDate(usedDate)}` : ''), true);
 
   currentUsageCase = { items: [] };
   document.getElementById('u-hn').value='';
@@ -2842,6 +3477,8 @@ document.getElementById('btn-save-usage').addEventListener('click', async ()=>{
   document.getElementById('u-op').value='';
   document.getElementById('u-notes').value='';
   document.getElementById('u-scan-feedback').innerHTML='';
+  if(backdated) useDateSetAt = Date.now();      // ลงย้อนหลังต่ออีกเคสได้ ไม่ต้องเลือกวันใหม่
+  renderUseDate();
   renderUsageItemList();
   renderAll();
   renderUsageHistory();
@@ -2887,7 +3524,7 @@ document.querySelectorAll('.shelf-btn').forEach(btn=>{
     setShelfDays(parseInt(btn.dataset.days,10));
     // จำอายุเก็บของชื่อเครื่องมือปัจจุบันไว้
     const name = document.getElementById('r-name').value.trim();
-    if(name){ itemShelfMemory[name] = parseInt(btn.dataset.days,10); saveSetting('item-shelf-memory', itemShelfMemory); }
+    if(name){ itemShelfMemory[name] = parseInt(btn.dataset.days,10); saveShelfMemory(name, itemShelfMemory[name]); }
   });
 });
 // เมื่อเลือก/พิมพ์ชื่อเครื่องมือ ถ้าเคยจำอายุเก็บไว้ ให้เด้งอัตโนมัติ
@@ -3107,9 +3744,9 @@ function hwRoute(key, code){
     hwBeep(true);
     hwFocus('recv');
   }else if(key === 'usage'){
-    onUsageScanSuccess(code);
+    const accepted = onUsageScanSuccess(code);
     hwShowLast('usage', code);
-    hwBeep(true);
+    hwBeep(accepted !== false);
     hwFocus('usage');
   }else if(key === 'search'){
     const gs = document.getElementById('global-search');
@@ -3289,11 +3926,12 @@ function renderCatalogList(){
   const el = document.getElementById('catalog-list');
   if(!el) return;
   if(!catalog.length){ el.innerHTML = '<p style="font-size:12px;color:var(--steel);">ยังไม่มีรายการมาตรฐานที่ลงทะเบียน</p>'; return; }
-  el.innerHTML = catalog.map(c=>`
+  const CAT_MAX = 60;
+  el.innerHTML = catalog.slice(0, CAT_MAX).map(c=>`
     <div class="catalog-row">
       <div><div class="cn">${escapeHtml(c.name)}</div><div class="cc">${escapeHtml(c.code)} &middot; ${c.shelfDays} วัน &middot; ${escapeHtml(c.method)}</div></div>
       <button class="icon-btn danger" data-del-cat="${escapeHtml(c.code)}" title="ลบ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6 v14 a2 2 0 0 1-2 2 H7 a2 2 0 0 1-2-2 V6 m3 0 V4 a2 2 0 0 1 2-2 h4 a2 2 0 0 1 2 2 v2"/></svg></button>
-    </div>`).join('');
+    </div>`).join('') + (catalog.length > CAT_MAX ? `<p style="font-size:11.5px;color:var(--steel);margin-top:8px;">แสดง ${CAT_MAX} จาก ${catalog.length} รายการ</p>` : '');
   el.querySelectorAll('[data-del-cat]').forEach(b=>{
     b.addEventListener('click', async ()=>{
       if(!await deleteCatalogEntry(b.dataset.delCat)) return;
@@ -3307,8 +3945,8 @@ function renderCatalogList(){
 /* ---------- STANDARDS VIEW ---------- */
 function renderStandardsView(){
   const body = document.getElementById('standards-table-body');
-  if(!items.length){ body.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--steel);padding:30px;">ยังไม่มีข้อมูลในคลัง</td></tr>`; return; }
-  body.innerHTML = [...items].sort((a,b)=>standardPass(a)-standardPass(b)).map(i=>{
+  if(!stockItems().length){ body.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--steel);padding:30px;">ยังไม่มีข้อมูลในคลัง</td></tr>`; return; }
+  body.innerHTML = [...stockItems()].sort((a,b)=>standardPass(a)-standardPass(b)).map(i=>{
     const pass = standardPass(i);
     const st = statusOf(i);
     const dotColor = pass ? 'var(--ok)' : 'var(--expired)';
@@ -3338,6 +3976,18 @@ function monthOf(ts){
   if(isNaN(d.getTime())) return '';
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
 }
+const reportExtra = {};        // เดือน → {at, data, loading}
+function fetchReportExtra(month){
+  if(serverApi < 3 || !month) return;
+  const cur = reportExtra[month];
+  if(cur && (cur.loading || Date.now() - cur.at < 120000)) return;
+  reportExtra[month] = {at: cur ? cur.at : 0, data: cur ? cur.data : null, loading:true};
+  apiCall('monthReport', {month}, {timeout:30000}).then(r=>{
+    reportExtra[month] = {at: Date.now(), data: r.ok ? r.data : (cur ? cur.data : null), loading:false};
+    const mi = document.getElementById('report-month');
+    if(currentView === 'reports' && mi && mi.value === month) renderReportsView();
+  });
+}
 function getReportData(monthValue){
   const filtered = logs.filter(l=>monthOf(l.ts) === monthValue);
 
@@ -3350,13 +4000,26 @@ function getReportData(monthValue){
     byName[key] = byName[key] || {usage:0, resterile:0, expired:0};
     byName[key][k]++;
   });
+  // ส่วนที่ครบกำหนดเก็บและถูกลบรายละเอียดไปแล้ว — หลังบ้านเก็บยอดรวมไว้ให้ (ไม่มี HN)
+  const extra = (reportExtra[monthValue] && reportExtra[monthValue].data) || null;
+  if(extra){
+    (extra.purged || []).forEach(p=>{
+      if(!(p.kind in totals)) return;
+      totals[p.kind] += p.count;
+      const key = p.name || '(ไม่ทราบชื่อ)';
+      byName[key] = byName[key] || {usage:0, resterile:0, expired:0};
+      byName[key][p.kind] += p.count;
+    });
+  }
   const rows = Object.entries(byName)
     .map(([name,c])=>({name, usage:c.usage, resterile:c.resterile, expired:c.expired, total:c.usage+c.resterile+c.expired}))
     .sort((a,b)=>b.total-a.total);
 
   // จำนวนที่รับเข้าคลังในเดือนนั้น = ยอดคงเหลือ + จำนวนที่ถูกตัดออกไปแล้วของล็อตนั้น
   let received = 0;
-  items.forEach(i=>{
+  if(extra) received = extra.received;                   // หลังบ้านนับให้ (รวมของที่ใช้หมดแล้ว ซึ่งเครื่องนี้ไม่ได้โหลดมา)
+  else if(serverApi >= 3) received = null;               // ยังรอคำตอบจากหลังบ้าน
+  else items.forEach(i=>{
     if(monthOf(i.createdAt) !== monthValue) return;
     const moved = logs.filter(l=>l.itemId === i.id).length;
     received += (parseInt(i.qty)||0) + moved;
@@ -3381,11 +4044,12 @@ function getReportData(monthValue){
 function renderReportsView(){
   const monthInput = document.getElementById('report-month');
   if(!monthInput.value){ monthInput.value = currentMonthValue(); monthInput.dispatchEvent(new Event('change')); }
+  fetchReportExtra(monthInput.value);
   const data = getReportData(monthInput.value);
   document.getElementById('report-total-count').textContent = data.totalCount;
   document.getElementById('report-resterile').textContent = data.resterileCount;
   document.getElementById('report-expired').textContent = data.expiredCount;
-  document.getElementById('report-received').textContent = data.received;
+  document.getElementById('report-received').textContent = data.received === null ? '…' : data.received;
   document.getElementById('report-item-types').textContent = data.itemTypes;
   document.getElementById('report-top-item').textContent = data.topItem;
   document.getElementById('report-top-item').style.fontSize = data.topItem.length > 10 ? '16px' : '28px';
@@ -3418,7 +4082,7 @@ document.getElementById('btn-export-report').addEventListener('click', ()=>{
   csv += 'ใช้กับผู้ป่วย (ชิ้น),' + data.totalCount + '\n';
   csv += 'ส่ง Re-sterile (ชิ้น),' + data.resterileCount + '\n';
   csv += 'หมดอายุ/ตัดออก (ชิ้น),' + data.expiredCount + '\n';
-  csv += 'รับเข้าคลัง (ชิ้น),' + data.received + '\n';
+  csv += 'รับเข้าคลัง (ชิ้น),' + (data.received === null ? '' : data.received) + '\n';
   csv += 'ชนิดอุปกรณ์ที่เคลื่อนไหว,' + data.itemTypes + '\n';
   csv += 'ใช้บ่อยที่สุด,' + q(data.topItem) + '\n\n';
   csv += 'สรุปแยกตามอุปกรณ์\n';
@@ -3644,7 +4308,7 @@ function renderPatientView(){
       return '<div class="pt-case" data-hn="' + escapeHtml(c.hn||'') + '">'
         + '<div class="t"><span><b>' + (c.hn ? 'HN ' + escapeHtml(c.hn) : '(ไม่ระบุ HN)') + '</b>'
         + (c.operation ? ' · ' + escapeHtml(c.operation) : '') + '</span>'
-        + '<span class="lt">' + fmtCaseTime(c.ts) + '</span></div>'
+        + '<span class="lt">' + caseTimeHtml(c) + '</span></div>'
         + '<div class="s">' + (c.department ? escapeHtml(c.department) + ' · ' : '') + c.items.length + ' ชิ้น'
         + (f ? ' · <span style="color:var(--expired);font-weight:700;">' + f + ' ไม่ผ่านเกณฑ์</span>' : '')
         + '</div></div>';
@@ -3692,7 +4356,7 @@ function renderPatientView(){
     let out = '﻿ประวัติการใช้กับผู้ป่วย,' + q(ptPeriodLabel()) + '\n\n';
     out += 'วันที่-เวลา,HN,การผ่าตัด,แผนก,ชื่อชุด/อุปกรณ์,รหัส,Lot,วันหมดอายุ,ผ่านเกณฑ์,หมายเหตุ\n';
     rows.slice().sort((a,b)=>Number(a.ts)-Number(b.ts)).forEach(l=>{
-      out += q(fmtCaseTime(l.ts)) + ',' + q(l.hn) + ',' + q(l.operation) + ',' + q(l.department) + ',' +
+      out += q(caseTimeText(l)) + ',' + q(l.hn) + ',' + q(l.operation) + ',' + q(l.department) + ',' +
              q(l.name) + ',' + q(l.code) + ',' + q(l.lot) + ',' + q(fmtDate(l.expiry)) + ',' +
              q(l.pass === false ? 'ไม่ผ่าน' : 'ผ่าน') + ',' + q(l.notes) + '\n';
     });
@@ -3934,19 +4598,23 @@ function unlockApp(){
   const vTag = document.getElementById('app-version-tag');
   if(vTag) vTag.textContent = APP_VERSION;
   const vStrip = document.getElementById('version-strip-text');
-  if(vStrip) vStrip.textContent = 'Sterile Stock ' + APP_VERSION;
+  updateVersionStrip();
   console.log('[SterileStock] version', APP_VERSION, '—', APP_VERSION_NOTE);
   outboxLoad();
   renderOutboxPill();
+  renderIssuePill();
+  renderUseDate();
   showCachedFirst();          // เห็นข้อมูลทันทีจากที่เก็บไว้ในเครื่อง
   loadData();                 // แล้วค่อยอัปเดตจากคลาวด์เบื้องหลัง
 }
+/* คืนรหัสผ่านที่ตั้งไว้ · คืน null ถ้าติดต่อฐานข้อมูลไม่ได้ (ยังบอกไม่ได้ว่ารหัสคืออะไร) */
 async function getStoredPin(){
-  const res = await apiCall('loadAll');
-  if(res.ok && res.data && res.data.settings && res.data.settings['app-pin']){
-    return String(res.data.settings['app-pin']);
-  }
-  return DEFAULT_PIN;
+  const g = await apiCall('getSetting', {key:'app-pin'}, {timeout:20000});
+  if(g.ok) return (g.data && g.data.value) ? String(g.data.value) : DEFAULT_PIN;
+  if(g.net) return null;
+  const res = await apiCall('loadAll');                    // หลังบ้านรุ่นเก่ายังไม่มีคำสั่ง getSetting
+  if(res.ok) return (res.data && res.data.settings && res.data.settings['app-pin']) ? String(res.data.settings['app-pin']) : DEFAULT_PIN;
+  return null;
 }
 /* เก็บ "ลายนิ้วมือ" ของรหัสผ่านไว้ในเครื่อง (ไม่ได้เก็บตัวรหัส) เพื่อให้ล็อกอินได้ทันที
    แล้วค่อยตรวจกับเซิร์ฟเวอร์เบื้องหลัง ถ้ารหัสถูกเปลี่ยนจากเครื่องอื่นจะเด้งออกให้ */
@@ -3958,6 +4626,7 @@ async function pinFingerprint(pin){
 }
 async function verifyPinInBackground(pin){
   const serverPin = await getStoredPin();
+  if(serverPin === null) return;                           // ติดต่อไม่ได้ → ยังตรวจไม่ได้ ไม่เด้งออก
   if(pin === serverPin){
     const fp = await pinFingerprint(pin);
     if(fp){ try{ localStorage.setItem('sterile-pin-fp', fp); }catch(e){} }
@@ -3990,7 +4659,7 @@ async function tryLogin(){
     }
   }
 
-  const correctPin = await getStoredPin();
+  const correctPin = (await getStoredPin()) || DEFAULT_PIN;
   if(pin === correctPin){
     const fp = await pinFingerprint(pin);
     if(fp){ try{ localStorage.setItem('sterile-pin-fp', fp); }catch(e){} }
@@ -4012,6 +4681,7 @@ document.getElementById('btn-logout').addEventListener('click', ()=>{
 });
 document.getElementById('btn-change-pin').addEventListener('click', async ()=>{
   const current = await getStoredPin();
+  if(current === null){ showToast('ติดต่อฐานข้อมูลไม่ได้ ยังเปลี่ยนรหัสผ่านไม่ได้'); return; }
   const oldEntered = prompt('กรอกรหัสผ่านปัจจุบัน เพื่อยืนยันตัวตน:');
   if(oldEntered === null) return;
   if(oldEntered.trim() !== current){ alert('รหัสผ่านปัจจุบันไม่ถูกต้อง'); return; }
